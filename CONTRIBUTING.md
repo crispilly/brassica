@@ -1,42 +1,38 @@
-Brassica – Richtlinien für Beiträge
+# Beiträge zu Brassica
 
-Vielen Dank für Dein Interesse an Brassica!
-Beiträge sind willkommen, egal ob Fehlerkorrekturen, Verbesserungen, neue Funktionen oder Dokumentation.
+Danke, dass Du zum Projekt beitragen möchtest!  
+Beiträge sind willkommen – egal ob Fehlerkorrekturen, Verbesserungen, neue Funktionen oder Dokumentation.
 
-Grundregeln
+## Grundregeln
 
-• Der gesamte Beitrag muss mit der Lizenz dieses Projekts kompatibel sein (GPL-3.0).
-• Der Code soll klar, nachvollziehbar und gut strukturiert sein.
-• Jede Änderung soll kurz beschrieben werden:
-– Was wurde geändert?
-– Warum wurde es geändert?
-– Welche Auswirkungen hat es?
-• Diskussionen über größere Änderungen bitte vorher als Issue im Repository eröffnen.
+- Alle Beiträge müssen mit der Lizenz dieses Projekts kompatibel sein (GPL-3.0).  
+- Code soll klar, nachvollziehbar und gut strukturiert sein.  
+- Jede Änderung soll kurz beschrieben werden:
+  - Was wurde geändert?
+  - Warum wurde es geändert?
+  - Welche Auswirkungen hat es?
+- Diskussion größerer Änderungen bitte vorher als Issue eröffnen.
 
-Pull Requests
+## Pull Requests
 
-Repository forken
+1. Repository forken  
+2. Eigenen Branch erstellen  
+3. Änderungen durchführen  
+4. Commit mit aussagekräftiger Nachricht  
+5. Pull Request gegen den main-Branch einreichen
 
-Eigenen Branch anlegen
+## Tests
 
-Änderungen durchführen
+- Änderungen sollten lokal geprüft werden.  
+- Import und Export von .broccoli-Dateien testen.  
+- UI-Änderungen sowohl am Desktop als auch mobil prüfen.
 
-Commit mit aussagekräftiger Beschreibung
+## Dokumentation
 
-Pull Request gegen den „main“-Branch erstellen
+Neue Funktionen oder veränderte Abläufe müssen in der README ergänzt werden.
 
-Tests
+## Fragen
 
-• Änderungen sollten lokal überprüft werden.
-• Import und Export von .broccoli-Dateien testen.
-• Oberflächenänderungen sowohl am Desktop als auch mobil prüfen.
-
-Dokumentation
-
-Neue Funktionen oder veränderte Abläufe sollen in der README beschrieben werden.
-
-Fragen
-
-Bei Fragen oder Problemen bitte ein Issue im GitHub-Repository öffnen.
+Bitte ein Issue im Repository öffnen.
 
 Danke für Deinen Beitrag zu Brassica!
