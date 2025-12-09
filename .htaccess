@@ -1,0 +1,16 @@
+RewriteEngine On
+
+# Installer: wenn set_admin_password.php existiert, login.php -> Installer
+RewriteCond %{DOCUMENT_ROOT}/public/set_admin_password.php -f
+RewriteRule ^login\.php$ /public/set_admin_password.php [L]
+
+# Root-URL "/" -> /public/
+RewriteRule ^$ public/ [L]
+
+# Wenn Datei/Verzeichnis in project-root real existiert -> normal ausliefern
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Alles andere auf /public/... umbiegen
+RewriteRule ^(.*)$ public/$1 [L]
