@@ -1,0 +1,495 @@
+/* public/styles.css */
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+	background: #f5f5f5;
+	color: #222;
+}
+
+.app-header {
+	padding: 1rem 1.5rem;
+	background: #1c5e8a;
+	color: #fff;
+}
+
+.app-header h1 {
+	margin: 0;
+	font-size: 1.4rem;
+}
+
+.app-main {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 1rem 1.5rem 2rem;
+}
+
+.hidden {
+	display: none;
+}
+
+.login_block {
+	margin:10px;
+}
+
+/* Toolbar */
+
+.toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	align-items: flex-end;
+	margin-bottom: 1.5rem;
+	background: #fff;
+	border-radius: 0.5rem;
+	padding: 0.75rem 1rem;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.toolbar-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-width: 200px;
+}
+
+.toolbar label {
+	font-size: 0.85rem;
+	color: #555;
+}
+
+.toolbar input[type="text"],
+.toolbar select {
+	padding: 0.4rem 0.5rem;
+	border-radius: 0.25rem;
+	border: 1px solid #ccc;
+	font-size: 0.95rem;
+}
+
+.toolbar button {
+	padding: 0.45rem 0.8rem;
+	border: none;
+	border-radius: 0.25rem;
+	font-size: 0.95rem;
+	cursor: pointer;
+	background: #3498db;
+	color: #fff;
+}
+
+.toolbar button:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
+/* Grid */
+
+.recipes-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 1rem;
+	margin-bottom: 1.5rem;
+}
+
+.recipe-card {
+	background: #fff;
+	border-radius: 0.5rem;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	cursor: pointer;
+	transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.recipe-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+}
+
+.recipe-card-image {
+	position: relative;
+	padding-top: 60%;
+	overflow: hidden;
+	background: #eee;
+}
+
+.recipe-card-image img {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.recipe-card-image-placeholder {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #777;
+	font-size: 0.9rem;
+}
+
+.recipe-card-body {
+	padding: 0.75rem 0.85rem 0.8rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+}
+
+.recipe-card-body h2 {
+	margin: 0;
+	font-size: 1rem;
+	font-weight: 600;
+	color: #222;
+}
+
+.recipe-card-categories {
+	font-size: 0.8rem;
+	color: #666;
+}
+
+/* Pagination */
+
+.pagination {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.75rem;
+}
+
+.pagination button {
+	padding: 0.35rem 0.8rem;
+	border-radius: 0.25rem;
+	border: 1px solid #ccc;
+	background: #fff;
+	cursor: pointer;
+	font-size: 0.9rem;
+}
+
+.pagination button:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.pagination span {
+	font-size: 0.9rem;
+}
+
+/* Messages */
+
+.empty-hint,
+.error-message {
+	padding: 1rem;
+	background: #fff;
+	border-radius: 0.5rem;
+	text-align: center;
+	color: #666;
+}
+
+.error-message {
+	color: #b71c1c;
+}
+
+/* Archiv-Import */
+
+.import-box {
+	background: #fff;
+	padding: 1rem 1.2rem;
+	border-radius: 0.5rem;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+	margin-bottom: 1.5rem;
+}
+
+.import-box input[type="file"] {
+	margin-top: 0.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.import-actions {
+	margin-top: 1rem;
+	text-align: right;
+}
+
+.archive-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.8rem;
+}
+
+.archive-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.75rem;
+	background: #fff;
+	border-radius: 0.5rem;
+	padding: 0.75rem;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+	cursor: pointer;
+}
+.archive-thumb {
+	width: 80px;
+	min-width: 80px;
+	height: 80px;
+	border-radius: 0.4rem;
+	overflow: hidden;
+	background: #eee;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 0.75rem;
+	color: #666;
+}
+
+.archive-thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.archive-thumb-placeholder {
+	background: #f0f0f0;
+}
+
+
+.archive-item:hover {
+	box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+}
+
+.archive-item input[type="checkbox"] {
+	margin-top: 0.3rem;
+}
+
+.archive-item-body {
+	flex: 1;
+}
+
+.archive-item-title {
+	font-weight: 600;
+	margin-bottom: 0.3rem;
+}
+
+.archive-item-meta {
+	font-size: 0.8rem;
+	color: #555;
+	margin-bottom: 0.3rem;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.8rem;
+}
+
+.archive-open {
+	font-size: 0.85rem;
+	color: #2c3e50;
+	text-decoration: underline;
+	cursor: pointer;
+	margin-top: 0.3rem;
+}
+
+/* ---------- Seite 0: Index---------- */
+
+.list-tools {
+	margin-bottom: 1.2rem !important;
+}
+
+.list-tools button {
+   	padding: 0.6rem 1.1rem;
+	background: #3498db;
+	color: #fff;
+	border: none;
+	border-radius: 0.3rem;
+	cursor: pointer; 
+}
+
+
+.list-tools button:disabled {
+   	padding: 0.6rem 1.1rem;
+	background: #db6334;
+	color: #fff;
+	border: none;
+	border-radius: 0.3rem;
+	cursor: not-allowed; 
+}
+
+
+/* ---------- Seite 1: Viewer ---------- */
+
+.view-main {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+.view-image img {
+	width: 100%;
+	border-radius: 0.5rem;
+	box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.view-meta {
+	background: #fff;
+	padding: 1rem 1.2rem;
+	border-radius: 0.5rem;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+	line-height: 1.5;
+}
+
+.view-block {
+	background: #fff;
+	padding: 1rem 1.2rem;
+	border-radius: 0.5rem;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.view-block h2 {
+	margin-top: 0;
+}
+
+.view-content {
+	white-space: pre-wrap;
+}
+
+.view-actions {
+	justify-content: space-between;
+	margin-top: 1rem;
+}
+
+.view-actions button {
+	padding: 0.6rem 1.1rem;
+	background: #3498db;
+	color: #fff;
+	border: none;
+	border-radius: 0.3rem;
+	cursor: pointer;
+}
+
+.view-actions button:hover {
+	background: #2980b9;
+}
+
+/* ---------- Seite 2: Editor ---------- */
+
+.editor-actions-top, .editor-actions-bottom {
+    margin-top:1rem;
+    margin-bottom:1rem;
+}
+    
+    
+    
+.editor-actions-top button, .editor-actions-bottom button {
+   	padding: 0.6rem 1.1rem;
+	background: #3498db;
+	color: #fff;
+	border: none;
+	border-radius: 0.3rem;
+	cursor: pointer; 
+}
+
+/* ---------- Seite 3: Archiv-Import ---------- */
+
+.archive-tools {
+	margin-bottom: 1.2rem !important;
+}
+
+.archive-tools button {
+   	padding: 0.6rem 1.1rem;
+	background: #3498db;
+	color: #fff;
+	border: none;
+	border-radius: 0.3rem;
+	cursor: pointer; 
+}
+
+
+.archive-tools button:disabled {
+   	padding: 0.6rem 1.1rem;
+	background: #db6334;
+	color: #fff;
+	border: none;
+	border-radius: 0.3rem;
+	cursor: not-allowed; 
+}
+
+.import-box button {
+   	padding: 0.6rem 1.1rem;
+	background: #3498db;
+	color: #fff;
+	border: none;
+	border-radius: 0.3rem;
+	cursor: pointer; 
+}
+
+/* Button-Teil vom <input type="file"> wie der blaue Button */
+.import-box input[type="file"]::file-selector-button,
+.import-box input[type="file"]::-webkit-file-upload-button {
+    padding: 0.6rem 1.1rem;
+    background: #3498db;
+    color: #fff;
+    border: none;
+    border-radius: 0.3rem;
+    cursor: pointer;
+}
+
+
+
+/* ---------- Navigation ---------- */
+
+.main-nav {
+	margin-top: 0.5rem;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+}
+
+.main-nav a {
+	color: #ecf0f1;
+	text-decoration: none;
+	font-size: 0.9rem;
+	padding: 0.25rem 0.6rem;
+	border-radius: 999px;
+	border: 1px solid rgba(255,255,255,0.25);
+}
+
+.main-nav a:hover {
+	background: rgba(255,255,255,0.15);
+}
+.recipe-card-select {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	min-width: 32px;
+	height:2rem;
+}
+
+.recipe-card-select .recipe-select {
+	cursor: pointer;
+	transform: scale(2);
+}
+
+.status-banner {
+	margin-bottom: 1rem;
+	padding: 0.75rem 1rem;
+	border-radius: 0.4rem;
+	font-size: 0.95rem;
+}
+
+.status-banner-logged-in {
+	background: #e8f7e8;
+	border: 1px solid #5fa75f;
+}
+
+.status-banner-guest {
+	background: #fff7e0;
+	border: 1px solid #c9a23a;
+}
