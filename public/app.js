@@ -1,5 +1,12 @@
 // public/app.js
 
+function msg(key, fallback) {
+	if (window.appMessages && Object.prototype.hasOwnProperty.call(window.appMessages, key)) {
+		return window.appMessages[key];
+	}
+	return fallback;
+}
+
 const API_BASE = '../api';
 
 let currentPage = 1;
@@ -152,8 +159,9 @@ async function loadRecipes() {
 		const data = await res.json();
 		renderRecipes(data);
 	} catch (err) {
-		console.error('Fehler beim Laden der Rezepte:', err);
-		renderError('Fehler beim Laden der Rezepte.');
+		const logMsg = msg('load_error_log', 'Fehler beim Laden der Rezepte:');
+		console.error(logMsg, err);
+		renderError(msg('load_error', 'Fehler beim Laden der Rezepte.'));
 	}
 }
 
@@ -182,11 +190,14 @@ function renderRecipes(data) {
 	if (items.length === 0) {
 		const empty = document.createElement('p');
 		empty.className = 'empty-hint';
-		empty.textContent = 'Keine Rezepte gefunden.';
+		empty.textContent = msg('no_recipes', 'Keine Rezepte gefunden.');
 		container.appendChild(empty);
 
 		if (pageInfo) {
-			pageInfo.textContent = `Seite ${page} / ${pages || 1}`;
+			const pattern = msg('page_info_pattern', 'Seite {page} / {pages}');
+			pageInfo.textContent = pattern
+			.replace('{page}', page)
+			.replace('{pages}', pages || 1);
 		}
 		if (pagePrev) {
 			pagePrev.disabled = page <= 1;
@@ -232,12 +243,13 @@ function renderRecipes(data) {
 		if (item.image_url) {
 			const img = document.createElement('img');
 			img.src = item.image_url;
-			img.alt = item.title || 'Rezeptbild';
+			const altFallback = msg('card_image_alt_fallback', 'Rezeptbild');
+			img.alt = item.title || altFallback;
 			imgWrapper.appendChild(img);
 		} else {
 			const placeholder = document.createElement('div');
 			placeholder.className = 'recipe-card-image-placeholder';
-			placeholder.textContent = 'Kein Bild';
+			placeholder.textContent = msg('card_image_placeholder', 'Kein Bild');
 			imgWrapper.appendChild(placeholder);
 		}
 
@@ -246,7 +258,7 @@ function renderRecipes(data) {
 		body.className = 'recipe-card-body';
 
 		const titleEl = document.createElement('h2');
-		titleEl.textContent = item.title || 'Unbenanntes Rezept';
+		titleEl.textContent = item.title || msg('card_title_fallback', 'Unbenanntes Rezept');
 
 		const catEl = document.createElement('div');
 		catEl.className = 'recipe-card-categories';
@@ -262,7 +274,7 @@ function renderRecipes(data) {
 		if (cats.length > 0) {
 			catEl.textContent = cats.join(' · ');
 		} else {
-			catEl.textContent = 'Keine Kategorie';
+			catEl.textContent = msg('card_category_none', 'Keine Kategorie');
 		}
 
 		body.appendChild(titleEl);
@@ -275,9 +287,13 @@ function renderRecipes(data) {
 		grid.appendChild(card);
 	}
 
-	if (pageInfo) {
-		pageInfo.textContent = `Seite ${page} / ${pages || 1}`;
-	}
+		if (pageInfo) {
+			const pattern = msg('page_info_pattern', 'Seite {page} / {pages}');
+			pageInfo.textContent = pattern
+			.replace('{page}', page)
+			.replace('{pages}', pages || 1);
+		}
+
 	if (pagePrev) {
 		pagePrev.disabled = page <= 1;
 	}
@@ -318,7 +334,7 @@ for (const item of items) {
 	select.innerHTML = '';
 	const optAll = document.createElement('option');
 	optAll.value = '';
-	optAll.textContent = 'Alle Kategorien';
+	optAll.textContent = msg('category_all', 'Alle Kategorien');
 	select.appendChild(optAll);
 
 	for (const c of categories) {
@@ -397,7 +413,8 @@ async function deleteSelectedRecipes() {
 	const ids = getSelectedRecipeIds();
 	if (ids.length === 0) return;
 
-	const ok = confirm(`Sollen wirklich ${ids.length} Rezept(e) gelöscht werden?`);
+	const pattern = msg('delete_confirm_pattern', 'Sollen wirklich {count} Rezept(e) gelöscht werden?');
+	const ok = confirm(pattern.replace('{count}', ids.length));
 	if (!ok) return;
 
 	try {
@@ -418,8 +435,9 @@ async function deleteSelectedRecipes() {
 		// Nach dem Löschen einfach die aktuelle Seite neu laden
 		await loadRecipes();
 	} catch (err) {
-		console.error('Fehler beim Löschen:', err);
-		alert('Fehler beim Löschen der Rezepte.');
+		const logMsg = msg('delete_error_log', 'Fehler beim Löschen:');
+		console.error(logMsg, err);
+		alert(msg('delete_error', 'Fehler beim Löschen der Rezepte.'));
 	}
 }
 
@@ -471,10 +489,18 @@ async function shareSelectedRecipes() {
 				await navigator.clipboard.writeText(url);
 			}
 		} catch (e) {
-			console.warn('Konnte Link nicht in die Zwischenablage kopiert werden:', e);
+			const logMsg = msg(
+				'clipboard_collection_warn_log',
+				'Konnte Link nicht in die Zwischenablage kopieren:'
+			);
+			console.warn(logMsg, e);
 		}
 
-		alert('Link zum Rezept wurde in die Zwischenablage kopiert:\n\n' + url);
+		const pattern = msg(
+			'share_single_copied',
+			'Link zum Rezept wurde in die Zwischenablage kopiert:\n\n{url}'
+		);
+		alert(pattern.replace('{url}', url));
 		return;
 	}
 
@@ -518,10 +544,18 @@ async function shareSelectedRecipes() {
 		}
 
 		// Nur anzeigen, nicht weiterleiten
-		alert('Link zur Sammlung wurde in die Zwischenablage kopiert:\n\n' + shareUrl);
+		const pattern = msg(
+			'share_collection_copied',
+			'Link zur Sammlung wurde in die Zwischenablage kopiert:\n\n{url}'
+		);
+		alert(pattern.replace('{url}', shareUrl));
 	} catch (err) {
-		console.error('Fehler beim Erzeugen der Sammlung:', err);
-		alert('Fehler beim Erzeugen des Teilungs-Links.');
+		const logMsg = msg(
+			'share_collection_error_log',
+			'Fehler beim Erzeugen der Sammlung:'
+		);
+		console.error(logMsg, err);
+		alert(msg('share_collection_error', 'Fehler beim Erzeugen des Teilungs-Links.'));
 	}
 }
 

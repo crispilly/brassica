@@ -7,6 +7,14 @@ let currentCategory = '';
 let currentSearch = '';
 let totalPages = 1;
 
+// i18n-Helper für diese Seite
+function iomsg(key, fallback) {
+	if (window.indexOpenMessages && Object.prototype.hasOwnProperty.call(window.indexOpenMessages, key)) {
+		return window.indexOpenMessages[key];
+	}
+	return fallback;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 	// Elemente der offenen Sammlungsseite
 	const mainEl           = document.querySelector('.app-main');
@@ -22,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	const btnExportTop     = document.getElementById('export-selected');
 	const btnExportBottom  = document.getElementById('export-selected-bottom');
 	const btnImportTop     = document.getElementById('import-selected');
-    const btnImportBottom  = document.getElementById('import-selected-bottom');
+	const btnImportBottom  = document.getElementById('import-selected-bottom');
 
 	if (!mainEl) {
 		console.error('index_open.js: .app-main nicht gefunden.');
@@ -115,15 +123,14 @@ document.addEventListener('DOMContentLoaded', () => {
 	if (btnExportBottom) {
 		btnExportBottom.addEventListener('click', exportSelectedRecipes);
 	}
-    
-    // Import-Buttons
-    if (btnImportTop) {
-    	btnImportTop.addEventListener('click', () => importSelectedRecipes(token));
-    }
-    if (btnImportBottom) {
-    	btnImportBottom.addEventListener('click', () => importSelectedRecipes(token));
-    }
 
+	// Import-Buttons
+	if (btnImportTop) {
+		btnImportTop.addEventListener('click', () => importSelectedRecipes(token));
+	}
+	if (btnImportBottom) {
+		btnImportBottom.addEventListener('click', () => importSelectedRecipes(token));
+	}
 
 	// Erster Aufruf
 	loadCollectionRecipes(token);
@@ -162,8 +169,8 @@ async function loadCollectionRecipes(token) {
 		const data = await res.json();
 		renderCollectionRecipes(data);
 	} catch (err) {
-		console.error('Fehler beim Laden der Sammlungs-Rezepte:', err);
-		renderError('Fehler beim Laden der Rezepte.');
+		console.error(iomsg('load_error_log', 'Fehler beim Laden der Sammlungs-Rezepte:'), err);
+		renderError(iomsg('load_error', 'Fehler beim Laden der Rezepte.'));
 	}
 }
 
@@ -184,7 +191,7 @@ async function importSelectedRecipes(token) {
 		});
 
 		if (res.status === 401) {
-			alert('Bitte melde Dich an, um Rezepte zu übernehmen.');
+			alert(iomsg('login_required_import', 'Bitte melde Dich an, um Rezepte zu übernehmen.'));
 			return;
 		}
 
@@ -194,14 +201,23 @@ async function importSelectedRecipes(token) {
 
 		const data = await res.json();
 		if (!data.success) {
-			alert('Import nicht erfolgreich: ' + (data.message || 'Unbekannter Fehler'));
+			const prefix = iomsg('import_not_successful_prefix', 'Import nicht erfolgreich: ');
+			alert(prefix + (data.message || iomsg('import_unknown_error', 'Unbekannter Fehler')));
 			return;
 		}
 
-		alert(`Import abgeschlossen. Übernommen: ${data.imported}, übersprungen (eigene): ${data.skipped_own}.`);
+		const template = iomsg(
+			'import_result',
+			'Import abgeschlossen. Übernommen: {imported}, übersprungen (eigene): {skipped_own}.'
+		);
+		const msg = template
+			.replace('{imported}', String(data.imported ?? 0))
+			.replace('{skipped_own}', String(data.skipped_own ?? 0));
+
+		alert(msg);
 	} catch (err) {
-		console.error('Fehler beim Import der Rezepte:', err);
-		alert('Fehler beim Import der Rezepte.');
+		console.error(iomsg('import_error_log', 'Fehler beim Import der Rezepte:'), err);
+		alert(iomsg('import_error', 'Fehler beim Import der Rezepte.'));
 	}
 }
 
@@ -219,7 +235,6 @@ function renderCollectionRecipes(data) {
 	container.innerHTML = '';
 
 	const items = Array.isArray(data.items) ? data.items : [];
-	const total = typeof data.total === 'number' ? data.total : 0;
 	const page  = typeof data.page === 'number' ? data.page : 1;
 	const pages = typeof data.pages === 'number' ? data.pages : 0;
 
@@ -227,11 +242,15 @@ function renderCollectionRecipes(data) {
 
 	if (items.length === 0) {
 		const p = document.createElement('p');
-		p.textContent = 'Keine Rezepte gefunden.';
+		p.className = 'empty-hint';
+		p.textContent = iomsg('empty_hint', 'Keine Rezepte gefunden.');
 		container.appendChild(p);
 
 		if (pageInfo) {
-			pageInfo.textContent = 'Seite 1 / 1';
+			const tmpl = iomsg('page_info', 'Seite {page} / {pages}');
+			pageInfo.textContent = tmpl
+				.replace('{page}', '1')
+				.replace('{pages}', '1');
 		}
 		if (pagePrev) pagePrev.disabled = true;
 		if (pageNext) pageNext.disabled = true;
@@ -275,12 +294,12 @@ function renderCollectionRecipes(data) {
 		if (item.image_url) {
 			const img = document.createElement('img');
 			img.src = item.image_url;
-			img.alt = item.title || 'Rezeptbild';
+			img.alt = item.title || iomsg('image_alt_fallback', 'Rezeptbild');
 			imgWrapper.appendChild(img);
 		} else {
 			const placeholder = document.createElement('div');
 			placeholder.className = 'recipe-card-image-placeholder';
-			placeholder.textContent = 'Kein Bild';
+			placeholder.textContent = iomsg('no_image', 'Kein Bild');
 			imgWrapper.appendChild(placeholder);
 		}
 
@@ -289,7 +308,7 @@ function renderCollectionRecipes(data) {
 		body.className = 'recipe-card-body';
 
 		const titleEl = document.createElement('h2');
-		titleEl.textContent = item.title || 'Unbenanntes Rezept';
+		titleEl.textContent = item.title || iomsg('title_fallback', 'Unbenanntes Rezept');
 
 		const catEl = document.createElement('div');
 		catEl.className = 'recipe-card-categories';
@@ -304,7 +323,7 @@ function renderCollectionRecipes(data) {
 		if (cats.length > 0) {
 			catEl.textContent = cats.join(' · ');
 		} else {
-			catEl.textContent = 'Keine Kategorie';
+			catEl.textContent = iomsg('no_category', 'Keine Kategorie');
 		}
 
 		body.appendChild(titleEl);
@@ -318,7 +337,10 @@ function renderCollectionRecipes(data) {
 	}
 
 	if (pageInfo) {
-		pageInfo.textContent = `Seite ${page} / ${pages || 1}`;
+		const tmpl = iomsg('page_info', 'Seite {page} / {pages}');
+		pageInfo.textContent = tmpl
+			.replace('{page}', String(page))
+			.replace('{pages}', String(pages || 1));
 	}
 	if (pagePrev) {
 		pagePrev.disabled = page <= 1;
@@ -360,7 +382,7 @@ function updateCategoryFilterFromItems(items) {
 	select.innerHTML = '';
 	const optAll = document.createElement('option');
 	optAll.value = '';
-	optAll.textContent = 'Alle Kategorien';
+	optAll.textContent = iomsg('category_all', 'Alle Kategorien');
 	select.appendChild(optAll);
 
 	for (const name of categories) {
@@ -475,6 +497,7 @@ function renderError(message) {
 	container.innerHTML = '';
 
 	const p = document.createElement('p');
+	p.className = 'error-message';
 	p.textContent = message;
 	container.appendChild(p);
 }

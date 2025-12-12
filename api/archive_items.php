@@ -107,27 +107,29 @@ try {
 				continue;
 			}
 
-			$hasImage = isset($recipe['imageName']) && $recipe['imageName'] !== '';
-
-			$items[] = [
-				'temp_id'    => str_pad((string)$tempId++, 4, '0', STR_PAD_LEFT),
-				'filename'   => $name,
-				'title'      => $recipe['title'] ?? '',
-				$cats = [];
-				if (isset($recipe['categories']) && is_array($recipe['categories'])) {
-					foreach ($recipe['categories'] as $c) {
-						if (is_array($c) && isset($c['name']) && trim($c['name']) !== '') {
-							$cats[] = ['name' => trim($c['name'])];
-						}
-					}
-				}
-				'categories' => $cats,
-				'favorite'   => !empty($recipe['favorite']) ? 1 : 0,
-				'has_image'  => $hasImage,
-				'image_url'  => $hasImage
-					? ('../api/archive_image.php?archive_id=' . $archiveId . '&filename=' . rawurlencode($name))
-					: null,
-			];
+            $hasImage = isset($recipe['imageName']) && $recipe['imageName'] !== '';
+            
+            // Kategorien VOR dem Array aufbauen
+            $cats = [];
+            if (isset($recipe['categories']) && is_array($recipe['categories'])) {
+            	foreach ($recipe['categories'] as $c) {
+            		if (is_array($c) && isset($c['name']) && trim($c['name']) !== '') {
+            			$cats[] = ['name' => trim($c['name'])];
+            		}
+            	}
+            }
+            
+            $items[] = [
+            	'temp_id'    => str_pad((string)$tempId++, 4, '0', STR_PAD_LEFT),
+            	'filename'   => $name,
+            	'title'      => $recipe['title'] ?? '',
+            	'categories' => $cats,
+            	'favorite'   => !empty($recipe['favorite']) ? 1 : 0,
+            	'has_image'  => $hasImage,
+            	'image_url'  => $hasImage
+            		? ('../api/archive_image.php?archive_id=' . $archiveId . '&filename=' . rawurlencode($name))
+            		: null,
+            ];
 		}
 
 		$zip->close();

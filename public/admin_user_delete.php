@@ -4,32 +4,33 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/session_bootstrap_page.php';
 require_once __DIR__ . '/../api/db.php';
+require_once __DIR__ . '/../i18n.php';
 
 $currentUserId = require_login_page();
 
 if ($currentUserId !== 1) {
 	http_response_code(403);
-	echo 'Zugriff verweigert.';
+	echo t('admin_user_delete.forbidden', 'Zugriff verweigert.');
 	exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 	http_response_code(405);
-	echo 'Nur POST erlaubt.';
+	echo t('admin_user_delete.method_not_allowed', 'Nur POST erlaubt.');
 	exit;
 }
 
 $userId = isset($_POST['user_id']) ? (int)$_POST['user_id'] : 0;
 if ($userId <= 0) {
 	http_response_code(400);
-	echo 'Ungültige Benutzer-ID.';
+	echo t('admin_user_delete.invalid_user_id', 'Ungültige Benutzer-ID.');
 	exit;
 }
 
 // dich selbst nicht löschen
 if ($userId === $currentUserId) {
 	http_response_code(400);
-	echo 'Der aktuell angemeldete Benutzer kann nicht gelöscht werden.';
+	echo t('admin_user_delete.cannot_delete_self', 'Der aktuell angemeldete Benutzer kann nicht gelöscht werden.');
 	exit;
 }
 
@@ -66,5 +67,8 @@ try {
 		$db->rollBack();
 	}
 	http_response_code(500);
-	echo 'Fehler beim Löschen des Benutzers: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+	echo t(
+	'admin_user_delete.delete_error_prefix',
+	'Fehler beim Löschen des Benutzers: '
+) . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }

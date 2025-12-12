@@ -4,7 +4,7 @@ const API_BASE = '../api';
 
 document.addEventListener('DOMContentLoaded', () => {
 	if (!RECIPE_ID || RECIPE_ID <= 0) {
-		alert('Ungültige Rezept-ID.');
+		alert(vmsg('import_invalid_id', 'Ungültige Rezept-ID.'));
 		return;
 	}
 	loadRecipe(RECIPE_ID);
@@ -22,8 +22,9 @@ async function loadRecipe(id) {
 		const data = await res.json();
 		renderRecipe(data);
 	} catch (err) {
-		console.error(err);
-		alert('Fehler beim Laden des Rezepts.');
+		const logMsg = vmsg('load_error_log', 'Fehler beim Laden des Rezepts:');
+		console.error(logMsg, err);
+		alert(vmsg('load_error', 'Fehler beim Laden des Rezepts.'));
 	}
 }
 
@@ -31,7 +32,8 @@ async function loadRecipe(id) {
  * Anzeige bauen – nur Felder mit Inhalt werden angezeigt
  */
 function renderRecipe(r) {
-	const title = r.title || 'Rezept';
+	const fallbackTitle = vmsg('title_fallback', 'Rezept');
+	const title = r.title || fallbackTitle;
 	document.getElementById('view-title').textContent = title;
 
 	// Bild
@@ -58,15 +60,18 @@ function renderRecipe(r) {
 			.filter(Boolean);
 
 		if (cats.length > 0) {
-			metaHtml += `<div><strong>Kategorie:</strong> ${escapeHtml(cats.join(', '))}</div>`;
+			const catLabel = escapeHtml(vmsg('meta_category_label', 'Kategorie:'));
+			metaHtml += `<div><strong>${catLabel}</strong> ${escapeHtml(cats.join(', '))}</div>`;
 		}
 	}
 
 	if (r.preparation_time) {
-		metaHtml += `<div><strong>Zeit:</strong> ${escapeHtml(r.preparation_time)}</div>`;
+		const timeLabel = escapeHtml(vmsg('meta_time_label', 'Zeit:'));
+		metaHtml += `<div><strong>${timeLabel}</strong> ${escapeHtml(r.preparation_time)}</div>`;
 	}
 	if (r.servings) {
-		metaHtml += `<div><strong>Portionen:</strong> ${escapeHtml(r.servings)}</div>`;
+		const servingsLabel = escapeHtml(vmsg('meta_servings_label', 'Portionen:'));
+		metaHtml += `<div><strong>${servingsLabel}</strong> ${escapeHtml(r.servings)}</div>`;
 	}
 
 	if (metaHtml) {
@@ -78,10 +83,10 @@ function renderRecipe(r) {
 	}
 
 	// Inhaltsblöcke – nur anzeigen, wenn etwas drin ist
-	setSection('view-ingredients', 'Zutaten', r.ingredients);
-	setSection('view-directions', 'Zubereitung', r.directions);
-	setSection('view-notes', 'Notizen', r.notes);
-	setSection('view-nutrition', 'Nährwerte', r.nutritional_vals);
+	setSection('view-ingredients', vmsg('section_ingredients', 'Zutaten'), r.ingredients);
+	setSection('view-directions', vmsg('section_directions', 'Zubereitung'), r.directions);
+	setSection('view-notes', vmsg('section_notes', 'Notizen'), r.notes);
+	setSection('view-nutrition', vmsg('section_nutrition', 'Nährwerte'), r.nutritional_vals);
 
 	// Quelle
 	const srcBox = document.getElementById('view-source');
@@ -92,15 +97,17 @@ function renderRecipe(r) {
 
 		srcBox.classList.remove('hidden');
 
+		const sourceHeading = escapeHtml(vmsg('section_source', 'Quelle'));
+
 		if (isLink) {
 			const safeUrl = escapeUrl(sourceStr);
 			srcBox.innerHTML = `
-				<h2>Quelle</h2>
+				<h2>${sourceHeading}</h2>
 				<p><a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(sourceStr)}</a></p>
 			`;
 		} else {
 			srcBox.innerHTML = `
-				<h2>Quelle</h2>
+				<h2>${sourceHeading}</h2>
 				<p>${escapeHtml(sourceStr)}</p>
 			`;
 		}
@@ -108,7 +115,6 @@ function renderRecipe(r) {
 		srcBox.classList.add('hidden');
 		srcBox.innerHTML = '';
 	}
-
 
  	// Aktions-Buttons je nach Owner-Status
  	updateActionButtons(!!r.is_owner);
@@ -182,7 +188,7 @@ async function importRecipeToMe(id) {
 		});
 
 		if (res.status === 401) {
-			alert('Bitte melde Dich an, um das Rezept zu übernehmen.');
+			alert(vmsg('login_required_import', 'Bitte melde Dich an, um das Rezept zu übernehmen.'));
 			return;
 		}
 
@@ -193,18 +199,22 @@ async function importRecipeToMe(id) {
 		const data = await res.json();
 
 		if (!data.success) {
-			alert('Import fehlgeschlagen: ' + (data.message || 'Unbekannter Fehler'));
+			const prefix = vmsg('import_failed_prefix', 'Import fehlgeschlagen: ');
+			const unknown = vmsg('import_unknown_error', 'Unbekannter Fehler');
+			alert(prefix + (data.message || unknown));
 			return;
 		}
 
 		if (data.imported && data.new_recipe_id) {
-			alert('Rezept wurde in Deine Rezepte übernommen.');
+			alert(vmsg('import_success', 'Rezept wurde in Deine Rezepte übernommen.'));
 		} else {
-			alert(data.message || 'Rezept gehört bereits Dir.');
+			const fallback = vmsg('import_already_owned', 'Rezept gehört bereits Dir.');
+			alert(data.message || fallback);
 		}
 	} catch (err) {
-		console.error('Fehler beim Einzelimport:', err);
-		alert('Fehler beim Übernehmen des Rezepts.');
+		const logMsg = vmsg('import_error_log', 'Fehler beim Einzelimport:');
+		console.error(logMsg, err);
+		alert(vmsg('import_generic_error', 'Fehler beim Übernehmen des Rezepts.'));
 	}
 }
 

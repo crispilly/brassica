@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../api/db.php';
 session_start();
-
+require_once __DIR__ . '/../i18n.php';
 $db = get_db();
 $error = null;
 
@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$row || !password_verify($password, $row['password_hash'])) {
-        $error = 'Ungültige Zugangsdaten.';
+        $error = t('auth.invalid_credentials');
     } else {
         $_SESSION['user_id'] = (int)$row['id'];
         $_SESSION['username'] = $username;
@@ -27,143 +27,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!doctype html>
-<html lang="de">
-<head>
-<meta charset="utf-8">
-<title>Brassica - Login</title>
-<link rel="stylesheet" href="styles.css">
-<style>
-	body.auth-body {
-		min-height: 100vh;
-		margin: 0;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: #f5f7fa;
-		font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-	}
-
-	.auth-wrapper {
-		width: 100%;
-		max-width: 420px;
-		padding: 1.5rem;
-	}
-
-	.auth-card {
-		background: #ffffff;
-		border-radius: 0.75rem;
-		padding: 2rem;
-		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-        text-align:center;
-	}
-
-	.auth-card h1 {
-		margin: 0 0 0.5rem 0;
-		font-size: 1.6rem;
-	}
-
-    .auth-card h3 {
-        margin-top:0;
-    }
-
-	.auth-subtitle {
-		margin: 0 0 1.2rem 0;
-		font-size: 0.95rem;
-		color: #555;
-	}
-
-	.auth-message {
-		margin: 0 0 1rem 0;
-		padding: 0.6rem 0.8rem;
-		border-radius: 0.4rem;
-		font-size: 0.9rem;
-	}
-
-	.auth-success {
-		background: #e8f7e8;
-		color: #205c2a;
-		border: 1px solid #5fa75f;
-	}
-
-	.auth-error {
-		background: #ffe5e5;
-		color: #8a1f1f;
-		border: 1px solid #e08b8b;
-	}
-
-	.auth-form {
-		margin-top: 0.5rem;
-	}
-
-	.auth-field {
-		margin-bottom: 0.9rem;
-	}
-
-	.auth-field label {
-		display: block;
-		font-weight: 600;
-		margin-bottom: 0.25rem;
- 	}
-
- 	.auth-field input[type="text"],
- 	.auth-field input[type="password"] {
- 		width: 100%;
- 		box-sizing: border-box;
- 		padding: 0.55rem 0.7rem;
- 		border-radius: 0.35rem;
- 		border: 1px solid #c5c5c5;
- 		font-size: 1rem;
- 	}
-
- 	.auth-field input:focus {
- 		outline: none;
- 		border-color: #3498db;
- 		box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.25);
- 	}
-
- 	.auth-submit {
- 		width: 100%;
- 		padding: 0.6rem 1rem;
- 		border-radius: 0.4rem;
- 		border: none;
- 		background: #1c5e8a;
- 		color: #fff;
- 		font-size: 1rem;
- 		font-weight: 600;
- 		cursor: pointer;
- 	}
-
- 	.auth-submit:hover {
- 		background: #2f89c5;
- 	}
-
- 	.auth-footer {
- 		margin-top: 0.9rem;
- 		font-size: 0.9rem;
- 		text-align: center;
- 	}
-
- 	.auth-footer a {
- 		color: #1c5e8a;
- 		text-decoration: none;
- 	}
-
- 	.auth-footer a:hover {
- 		text-decoration: underline;
- 	}
- </style>
- </head>
-
-<link rel="stylesheet" href="styles.css">
-</head>
+<html lang="<?php echo htmlspecialchars(current_language(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">
+	<head>
+		<meta charset="utf-8">
+		<title><?php echo htmlspecialchars(t('auth.page_title', 'Brassica - Login'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></title>
+		<link rel="stylesheet" href="styles.css">
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="/favicon-256.png" sizes="256x256" type="image/png">
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+	</head>
     <body class="auth-body">
         <div class="auth-wrapper">
             <section class="auth-card">
-                <h1>Brassica</h1><h3>Die Broccoli Web App</h3>
-                <p class="auth-subtitle">Melde Dich an, um Deine Rezepte zu verwalten.</p>
+                 <h1>Brassica</h1><h3><?php echo htmlspecialchars(t('auth.tagline', 'Die Broccoli Web App'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></h3>
+                <p class="auth-subtitle"><?php echo htmlspecialchars(t('auth.login_intro', 'Melde Dich an, um Deine Rezepte zu verwalten.'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></p>
 
                 <?php if (isset($_GET['registered'])): ?>
-                    <p class="auth-message auth-success">Registrierung erfolgreich. Bitte einloggen.</p>
+                    <p class="auth-message auth-success"><?php echo htmlspecialchars(t('auth.registration_success', 'Registrierung erfolgreich. Bitte einloggen.'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></p>
                 <?php endif; ?>
 
                 <?php if ($error): ?>
@@ -172,21 +52,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <form method="post" class="auth-form">
                     <div class="auth-field">
-                        <label for="username">Benutzername</label>
+                        <label for="username"><?php echo htmlspecialchars(t('auth.username_label', 'Benutzername'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></label>
                         <input type="text" id="username" name="username" required autofocus>
                     </div>
 
                     <div class="auth-field">
-                        <label for="password">Passwort</label>
+                        <label for="password"><?php echo htmlspecialchars(t('auth.password_label', 'Passwort'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></label>
                         <input type="password" id="password" name="password" required>
                     </div>
 
-                    <button type="submit" class="auth-submit">Login</button>
-                </form>
+                     <button type="submit" class="auth-submit"><?php echo htmlspecialchars(t('auth.login_button', 'Login'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></button>
+				</form>
+				<a href="register.php">
+					<?php echo htmlspecialchars(t('auth.create_account_link', 'Neuen Benutzer erstellen'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+				</a>
+				<?php
+					$availableLanguages = available_languages();
+					if (count($availableLanguages) > 1):
+				?>
+				<p class="auth-footer">
+					<?php echo htmlspecialchars(t('auth.language_switch_label', 'Sprache:'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+					<?php foreach ($availableLanguages as $code): ?>
+						<?php if ($code === current_language()): ?>
+							<strong><?php echo htmlspecialchars(strtoupper($code), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></strong>
+						<?php else: ?>
+							<a href="?lang=<?php echo urlencode($code); ?>">
+								<?php echo htmlspecialchars(strtoupper($code), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+							</a>
+						<?php endif; ?>
+					<?php endforeach; ?>
+				</p>
+				<?php
+					endif;
+				?>
 
-                <p class="auth-footer">
-                    <a href="register.php">Neuen Benutzer erstellen</a>
-                </p>
             </section>
         </div>
     </body>

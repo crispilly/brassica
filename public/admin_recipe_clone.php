@@ -4,25 +4,26 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/session_bootstrap_page.php';
 require_once __DIR__ . '/../api/db.php';
+require_once __DIR__ . '/../i18n.php';
 
 $currentUserId = require_login_page();
 
 if ($currentUserId !== 1) {
 	http_response_code(403);
-	echo 'Zugriff verweigert.';
+	echo t('admin_recipe_clone.forbidden', 'Zugriff verweigert.');
 	exit;
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 	http_response_code(405);
-	echo 'Nur POST erlaubt.';
+	echo t('admin_recipe_clone.method_not_allowed', 'Nur POST erlaubt.');
 	exit;
 }
 
 $recipeId = isset($_POST['recipe_id']) ? (int)$_POST['recipe_id'] : 0;
 if ($recipeId <= 0) {
 	http_response_code(400);
-	echo 'Ungültige Rezept-ID.';
+	echo t('admin_recipe_clone.invalid_recipe_id', 'Ungültige Rezept-ID.');
 	exit;
 }
 
@@ -35,7 +36,7 @@ $recipe = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$recipe) {
 	http_response_code(404);
-	echo 'Rezept nicht gefunden.';
+	echo t('admin_recipe_clone.not_found', 'Rezept nicht gefunden.');
 	exit;
 }
 
@@ -145,5 +146,8 @@ try {
 		$db->rollBack();
 	}
 	http_response_code(500);
-	echo 'Fehler beim Kopieren des Rezepts: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+	echo t(
+		'admin_recipe_clone.clone_error_prefix',
+		'Fehler beim Kopieren des Rezepts: '
+	) . htmlspecialchars($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }

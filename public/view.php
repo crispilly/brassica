@@ -2,9 +2,12 @@
 // public/view.php
 // erwartet URL wie view.php?id=123
 require_once __DIR__ . '/session_bootstrap_page.php';
+require_once __DIR__ . '/../i18n.php';
 
 $logged_in = isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] > 0;
+$userId = $logged_in ? (int)$_SESSION['user_id'] : null;
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
 // Basis-URL bestimmen
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
@@ -121,7 +124,7 @@ if ($id > 0) {
 				'@type'    => 'Recipe',
 				'name'     => $recipe['title'] ?? '',
 			];
-			
+
 			// optional, aber nah am LECKER-Schema
 			if (!empty($recipe['title'])) {
 				$data['headline'] = $recipe['title'];
@@ -157,12 +160,12 @@ if ($id > 0) {
 			if (!empty($recipe['source'])) {
 				$data['mainEntityOfPage'] = $recipe['source'];
 			}
-			// mainEntityOfPage: echte URL, niemals "ChatGPT" o.ä.
+			// mainEntityOfPage: echte URL
 			$data['mainEntityOfPage'] = [
 				'@type' => 'WebPage',
 				'@id'   => $canonicalUrl,
 			];
-						
+
 			$jsonLd = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
 		}
 	} catch (Throwable $e) {
@@ -170,97 +173,198 @@ if ($id > 0) {
 		$jsonLd = null;
 	}
 }
+$availableLanguages = available_languages();
+$currentLanguage    = current_language();
+$currentParams      = $_GET;
 ?>
 
 <!doctype html>
-<html lang="de">
-<head>
-	<meta charset="utf-8">
-	<title>Rezept ansehen</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="stylesheet" href="styles.css">
-<?php if ($jsonLd !== null): ?>
-	<script type="application/ld+json">
-<?php echo $jsonLd; ?>
+<html lang="<?php echo htmlspecialchars(current_language(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">
+    <head>
+    	<meta charset="utf-8">
+    	<title><?php echo htmlspecialchars(t('view.page_title', 'Rezept ansehen'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></title>
+    	<meta name="viewport" content="width=device-width, initial-scale=1">
+    	<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="/favicon-256.png" sizes="256x256" type="image/png">
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+    	<link rel="stylesheet" href="styles.css">
+    <?php if ($jsonLd !== null): ?>
+    	<script type="application/ld+json">
+    <?php echo $jsonLd; ?>
+    	</script>
+    <?php endif; ?>
+    
+    </head>
+    <body>
+        <header class="app-header">
+        	<div class="app-header-top">
+        		<h1 id="view-title">
+        			<?php echo htmlspecialchars(t('view.heading', 'Rezept'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+        		</h1>
+        
+            <?php if (count($availableLanguages) > 1): ?>
+            	<div class="language-switch">
+            		<?php echo htmlspecialchars(t('auth.language_switch_label', 'Sprache:'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+            		<?php foreach ($availableLanguages as $code): ?>
+            			<?php
+            				$isActive = ($code === $currentLanguage);
+            				$params   = $currentParams;
+            				$params['lang'] = $code;
+            				$queryString = http_build_query($params);
+            			?>
+            			<?php if ($isActive): ?>
+            				<strong><?php echo htmlspecialchars(strtoupper($code), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></strong>
+            			<?php else: ?>
+            				<a href="?<?php echo htmlspecialchars($queryString, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">
+            					<?php echo htmlspecialchars(strtoupper($code), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+            				</a>
+            			<?php endif; ?>
+            		<?php endforeach; ?>
+            	</div>
+            <?php endif; ?>
+        	</div>
 
-	</script>
-<?php endif; ?>
-
-</head>
-<body>
-<header class="app-header">
-	<h1 id="view-title">Rezept</h1>
-<?php if ($logged_in): ?>
-<nav class="main-nav">
-	<a href="index.php">Übersicht</a>
-	<a href="archive.php">Rezept-Import</a>
-	<a href="editor_new.php">Neues Rezept schreiben</a>
-	<a href="logout.php" class="logout-btn">Logout</a>
-</nav>
-<?php endif; ?>
-
-</header>
-
-<main class="app-main view-main">
- 	<div class="view-actions">
- 		<?php if ($logged_in): ?>
- 			<button type="button" onclick="goBack()">Zurück</button>
- 			<button type="button" id="btn-edit-top" onclick="openEditor()">Bearbeiten</button>
- 			<button type="button" id="btn-import-top" onclick="importRecipeToMe()">In meine Rezepte übernehmen</button>
- 		<?php endif; ?>
- 		<button type="button" onclick="downloadBroccoli()">Als Broccoli-Datei herunterladen</button>
- 		<button type="button" onclick="copyLink()">Link kopieren</button>
- 	</div>
-
-	<section id="view-image" class="view-image hidden"></section>
-
-	<section id="view-meta" class="view-meta hidden"></section>
-
-	<section id="view-ingredients" class="view-block hidden"></section>
-
-	<section id="view-directions" class="view-block hidden"></section>
-
-	<section id="view-notes" class="view-block hidden"></section>
-
-	<section id="view-nutrition" class="view-block hidden"></section>
-
-	<section id="view-source" class="view-block hidden"></section>
-
- 	<div class="view-actions">
- 		<?php if ($logged_in): ?>
- 			<button type="button" onclick="goBack()">Zurück</button>
- 			<button type="button" id="btn-edit-bottom" onclick="openEditor()">Bearbeiten</button>
- 			<button type="button" id="btn-import-bottom" onclick="importRecipeToMe()">In meine Rezepte übernehmen</button>
- 		<?php endif; ?>
- 		<button type="button" onclick="downloadBroccoli()">Als Broccoli-Datei herunterladen</button>
- 		<button type="button" onclick="copyLink()">Link kopieren</button>
- 	</div>
-
-</main>
-
-<script>
-	const RECIPE_ID = <?php echo json_encode($id, JSON_UNESCAPED_UNICODE); ?>;
-
- 	function importRecipeToMe() {
- 		if (!RECIPE_ID || RECIPE_ID <= 0) {
- 			alert('Ungültige Rezept-ID.');
- 			return;
- 		}
- 		window.importRecipeToMe && window.importRecipeToMe(RECIPE_ID);
- 	}
-
-	function copyLink() {
-		const url = window.location.href;
-		navigator.clipboard.writeText(url)
-			.then(() => {
-				alert('Link kopiert');
-			})
-			.catch(() => {
-				alert('Fehler beim Kopieren des Links');
-			});
-	}
-</script>
-<script src="view.js"></script>
-
-</body>
+        	<?php if ($logged_in): ?>
+        	<nav class="main-nav">
+        		<a href="index.php">
+        			<?php echo htmlspecialchars(t('nav.overview', 'Übersicht'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+        		</a>
+        		<a href="archive.php">
+        			<?php echo htmlspecialchars(t('nav.import', 'Rezept-Import'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+        		</a>
+        		<a href="editor_new.php">
+        			<?php echo htmlspecialchars(t('nav.new_recipe', 'Neues Rezept schreiben'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+        		</a>
+        		<?php if ($userId === 1): ?>
+        			<a href="admin_users.php">
+        				<?php echo htmlspecialchars(t('nav.admin_users', 'Benutzerverwaltung'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+        			</a>
+        			<a href="admin_collections.php">
+        				<?php echo htmlspecialchars(t('nav.admin_collections', 'Sammlungen verwalten'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+        			</a>
+        		<?php endif; ?>
+        		<a href="logout.php" class="logout-btn">
+        			<?php echo htmlspecialchars(t('nav.logout', 'Logout'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+        		</a>
+        	</nav>
+        	<?php endif; ?>
+        </header>
+        <main class="app-main view-main">
+         	<div class="view-actions">
+         		<?php if ($logged_in): ?>
+         			<button type="button" onclick="goBack()">
+        				<?php echo htmlspecialchars(t('view.back_button', 'Zurück'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+        			</button>
+         			<button type="button" id="btn-edit-top" onclick="openEditor()">
+        				<?php echo htmlspecialchars(t('view.edit_button', 'Bearbeiten'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+        			</button>
+         			<button type="button" id="btn-import-top" onclick="importRecipeToMe()">
+        				<?php echo htmlspecialchars(t('view.import_button', 'In meine Rezepte übernehmen'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+        			</button>
+         		<?php endif; ?>
+         		<button type="button" onclick="downloadBroccoli()">
+        			<?php echo htmlspecialchars(t('view.download_button', 'Als Broccoli-Datei herunterladen'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+        		</button>
+         		<button type="button" onclick="copyLink()">
+        			<?php echo htmlspecialchars(t('view.copy_button', 'Link kopieren'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+        		</button>
+         	</div>
+        
+        	<section id="view-image" class="view-image hidden"></section>
+        
+        	<section id="view-meta" class="view-meta hidden"></section>
+        
+        	<section id="view-ingredients" class="view-block hidden"></section>
+        
+        	<section id="view-directions" class="view-block hidden"></section>
+        
+        	<section id="view-notes" class="view-block hidden"></section>
+        
+        	<section id="view-nutrition" class="view-block hidden"></section>
+        
+        	<section id="view-source" class="view-block hidden"></section>
+        
+         	<div class="view-actions">
+         		<?php if ($logged_in): ?>
+         			<button type="button" onclick="goBack()">
+        				<?php echo htmlspecialchars(t('view.back_button', 'Zurück'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+        			</button>
+         			<button type="button" id="btn-edit-bottom" onclick="openEditor()">
+        				<?php echo htmlspecialchars(t('view.edit_button', 'Bearbeiten'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+        			</button>
+         			<button type="button" id="btn-import-bottom" onclick="importRecipeToMe()">
+        				<?php echo htmlspecialchars(t('view.import_button', 'In meine Rezepte übernehmen'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+        			</button>
+         		<?php endif; ?>
+         		<button type="button" onclick="downloadBroccoli()">
+        			<?php echo htmlspecialchars(t('view.download_button', 'Als Broccoli-Datei herunterladen'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+        		</button>
+         		<button type="button" onclick="copyLink()">
+        			<?php echo htmlspecialchars(t('view.copy_button', 'Link kopieren'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+        		</button>
+         	</div>
+        
+        </main>
+        
+        <script>
+        	const RECIPE_ID = <?php echo json_encode($id, JSON_UNESCAPED_UNICODE); ?>;
+        
+        	window.viewMessages = {
+        		import_invalid_id: <?php echo json_encode(t('view.import_invalid_id', 'Ungültige Rezept-ID.'), JSON_UNESCAPED_UNICODE); ?>,
+        		copy_success: <?php echo json_encode(t('view.copy_success', 'Link kopiert'), JSON_UNESCAPED_UNICODE); ?>,
+        		copy_error: <?php echo json_encode(t('view.copy_error', 'Fehler beim Kopieren des Links'), JSON_UNESCAPED_UNICODE); ?>,
+        
+        		load_error: <?php echo json_encode(t('view.load_error', 'Fehler beim Laden des Rezepts.'), JSON_UNESCAPED_UNICODE); ?>,
+        		load_error_log: <?php echo json_encode(t('view.load_error_log', 'Fehler beim Laden des Rezepts:'), JSON_UNESCAPED_UNICODE); ?>,
+        
+        		title_fallback: <?php echo json_encode(t('view.title_fallback', 'Rezept'), JSON_UNESCAPED_UNICODE); ?>,
+        
+        		meta_category_label: <?php echo json_encode(t('view.meta_category_label', 'Kategorie:'), JSON_UNESCAPED_UNICODE); ?>,
+        		meta_time_label: <?php echo json_encode(t('view.meta_time_label', 'Zeit:'), JSON_UNESCAPED_UNICODE); ?>,
+        		meta_servings_label: <?php echo json_encode(t('view.meta_servings_label', 'Portionen:'), JSON_UNESCAPED_UNICODE); ?>,
+        
+        		section_ingredients: <?php echo json_encode(t('view.section_ingredients', 'Zutaten'), JSON_UNESCAPED_UNICODE); ?>,
+        		section_directions: <?php echo json_encode(t('view.section_directions', 'Zubereitung'), JSON_UNESCAPED_UNICODE); ?>,
+        		section_notes: <?php echo json_encode(t('view.section_notes', 'Notizen'), JSON_UNESCAPED_UNICODE); ?>,
+        		section_nutrition: <?php echo json_encode(t('view.section_nutrition', 'Nährwerte'), JSON_UNESCAPED_UNICODE); ?>,
+        		section_source: <?php echo json_encode(t('view.section_source', 'Quelle'), JSON_UNESCAPED_UNICODE); ?>,
+        
+        		login_required_import: <?php echo json_encode(t('view.login_required_import', 'Bitte melde Dich an, um das Rezept zu übernehmen.'), JSON_UNESCAPED_UNICODE); ?>,
+        		import_failed_prefix: <?php echo json_encode(t('view.import_failed_prefix', 'Import fehlgeschlagen: '), JSON_UNESCAPED_UNICODE); ?>,
+        		import_unknown_error: <?php echo json_encode(t('view.import_unknown_error', 'Unbekannter Fehler'), JSON_UNESCAPED_UNICODE); ?>,
+        		import_success: <?php echo json_encode(t('view.import_success', 'Rezept wurde in Deine Rezepte übernommen.'), JSON_UNESCAPED_UNICODE); ?>,
+        		import_already_owned: <?php echo json_encode(t('view.import_already_owned', 'Rezept gehört bereits Dir.'), JSON_UNESCAPED_UNICODE); ?>,
+        		import_error_log: <?php echo json_encode(t('view.import_error_log', 'Fehler beim Einzelimport:'), JSON_UNESCAPED_UNICODE); ?>,
+        		import_generic_error: <?php echo json_encode(t('view.import_generic_error', 'Fehler beim Übernehmen des Rezepts.'), JSON_UNESCAPED_UNICODE); ?>
+        	};
+        
+        
+        	function vmsg(key, fallback) {
+        		if (window.viewMessages && Object.prototype.hasOwnProperty.call(window.viewMessages, key)) {
+        			return window.viewMessages[key];
+        		}
+        		return fallback;
+        	}
+        
+         	function importRecipeToMe() {
+         		if (!RECIPE_ID || RECIPE_ID <= 0) {
+         			alert(vmsg('import_invalid_id', 'Ungültige Rezept-ID.'));
+         			return;
+         		}
+         		window.importRecipeToMe && window.importRecipeToMe(RECIPE_ID);
+         	}
+        
+        	function copyLink() {
+        		const url = window.location.href;
+        		navigator.clipboard.writeText(url)
+        			.then(() => {
+        				alert(vmsg('copy_success', 'Link kopiert'));
+        			})
+        			.catch(() => {
+        				alert(vmsg('copy_error', 'Fehler beim Kopieren des Links'));
+        			});
+        	}
+        </script>
+        <script src="view.js"></script>
+    </body>
 </html>

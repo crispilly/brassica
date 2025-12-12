@@ -6,6 +6,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
 require_once __DIR__ . '/session_bootstrap_page.php';
+require_once __DIR__ . '/../i18n.php';
 
 // öffentlicher Download: GET + download=1
 $isPublicDownload = isset($_GET['download'])
@@ -18,9 +19,9 @@ if (!$isPublicDownload) {
 	$userId = require_login_page();
 }
 
-
 require_once __DIR__ . '/../api/db.php';
 $db = get_db();
+
 function send_broccoli_download(array $data, string $title, ?string $imagePathRel): void {
 	// imageName ggf. aus Pfad setzen
 	if ($imagePathRel) {
@@ -75,8 +76,6 @@ function send_broccoli_download(array $data, string $title, ?string $imagePathRe
 	exit;
 }
 
-
-
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
@@ -84,7 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 if ($id <= 0) {
 	http_response_code(400);
-	echo 'Ungültige Rezept-ID.';
+	echo t('editor.invalid_id', 'Ungültige Rezept-ID.');
 	exit;
 }
 
@@ -104,12 +103,11 @@ if ($isPublicDownload) {
 	]);
 }
 
-
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$row) {
 	http_response_code(404);
-	echo 'Rezept nicht gefunden.';
+	echo t('editor.not_found_or_forbidden', 'Rezept nicht gefunden oder keine Berechtigung.');
 	exit;
 }
 
@@ -178,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 			$allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 			if (!in_array($ext, $allowed, true)) {
-				$error = 'Nur JPG, PNG, WEBP oder GIF sind als Bild erlaubt.';
+				$error = t('editor.image_type_error', 'Nur JPG, PNG, WEBP oder GIF sind als Bild erlaubt.');
 			} else {
 				$imageDir = __DIR__ . '/../data/images';
 				if (!is_dir($imageDir)) {
@@ -189,18 +187,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 				$targetPathFs = $imageDir . '/' . $newFileName;
 
 				if (!move_uploaded_file($tmp, $targetPathFs)) {
-					$error = 'Fehler beim Speichern des Bildes.';
+					$error = t('editor.image_save_error', 'Fehler beim Speichern des Bildes.');
 				} else {
 					$newImagePath = 'data/images/' . $newFileName;
 				}
 			}
 		} else {
-			$error = 'Fehler beim Upload des Bildes.';
+			$error = t('editor.image_upload_error', 'Fehler beim Upload des Bildes.');
 		}
 	}
 
 	if ($title === '') {
-		$error = 'Titel darf nicht leer sein.';
+		$error = t('editor.title_required', 'Titel darf nicht leer sein.');
 	}
 
 	if (!isset($error)) {
@@ -239,7 +237,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		}
 
 		$jsonEncoded = json_encode($data, JSON_UNESCAPED_UNICODE);
-
 
 		// DB-Update
 		$sql = 'UPDATE recipes SET
@@ -280,7 +277,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
  		if ($stmt2->rowCount() === 0) {
  			http_response_code(404);
- 			echo 'Rezept nicht gefunden oder keine Berechtigung.';
+ 			echo t('editor.not_found_or_forbidden', 'Rezept nicht gefunden oder keine Berechtigung.');
  			exit;
  		}
 
@@ -344,6 +341,7 @@ $favoriteChecked = !empty($currentJson['favorite']) || (!empty($row['favorite'])
 // Bild-Preview aus DB/JSON
 $currentImagePath = $row['image_path'] ?? null;
 $imagePreviewUrl  = $currentImagePath ? ('../api/image.php?id=' . (int)$id) : null;
+
 // Download als Broccoli-Datei?
 if (isset($_GET['download']) && $_GET['download'] === '1') {
 	// Kategorien-Array im Broccoli-Format [{name: "..."}]
@@ -381,193 +379,259 @@ if (isset($_GET['download']) && $_GET['download'] === '1') {
 	$data['favorite']          = (bool)$favoriteChecked;
 
 	$imagePathRel = $currentImagePath ?: null;
-	$downloadTitle = $title !== '' ? $title : 'Rezept';
+	$downloadTitle = $title !== '' ? $title : t('editor.download_title_fallback', 'Rezept');
 
 	send_broccoli_download($data, $downloadTitle, $imagePathRel);
 }
 
+// Sprachumschalter: aktuelle GET-Parameter ohne "lang" als Basis übernehmen
+$langBaseParams = $_GET;
+unset($langBaseParams['lang']);
+
+if (!empty($langBaseParams)) {
+	$langQueryPrefix = http_build_query($langBaseParams) . '&';
+} else {
+	$langQueryPrefix = '';
+}
+
 ?><!doctype html>
-<html lang="de">
-<head>
-	<meta charset="utf-8">
-	<title>Rezept bearbeiten</title>
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<link rel="stylesheet" href="styles.css">
-</head>
-<body>
-
-<header class="app-header">
-	<h1>Rezept bearbeiten</h1>
-    <nav class="main-nav">
-		<a href="index.php">Übersicht</a>
-		<a href="archive.php">Rezept-Import</a>
-		<a href="editor_new.php">Neues Rezept schreiben</a>
-		<a href="logout.php" class="logout-btn">Logout</a>
-	</nav>
-</header>
-
-<main class="app-main editor-main">
-	<?php if (isset($error)): ?>
-		<div class="error-message" style="margin-bottom:1rem;"><?php echo htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></div>
-	<?php endif; ?>
-
-	<form method="post" action="editor.php" enctype="multipart/form-data">
-		<div class="editor-actions-top">
-        	<a href="<?php echo 'view.php?id=' . $id; ?>"><button type="button">Zurück</button></a>
-        	<button type="submit">Speichern</button>
-		</div>
-		<input type="hidden" name="id" value="<?php echo (int)$id; ?>">
-
-		<div class="view-block">
-			<h2>Stammdaten</h2>
-
-			<label>
-				Titel<br>
-				<input type="text" name="title" value="<?php echo htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" style="width:100%;">
-			</label>
-			<br><br>
-
-			<label>
-				Kategorien (kommagetrennt)<br>
-				<input
-					type="text"
-					name="categories"
-					id="categories-input"
-					value="<?php echo htmlspecialchars($categoriesStr, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>"
-					style="width:100%;"
-				>
-			</label>
-			<br><br>
-
-			<label>
-				Kategorie aus vorhandenen wählen<br>
-				<select id="categories-select">
-					<option value="">– Kategorie auswählen –</option>
-					<?php foreach ($allCategories as $catName): ?>
-						<option value="<?php echo htmlspecialchars($catName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">
-							<?php echo htmlspecialchars($catName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
-						</option>
-					<?php endforeach; ?>
-				</select>
-				<small>Ausgewählte Kategorie wird dem Textfeld oben hinzugefügt.</small>
-			</label>
-			<br><br>
-
-
-			<label>
-				Favorit
-				<input type="checkbox" name="favorite" <?php echo $favoriteChecked ? 'checked' : ''; ?>>
-			</label>
-		</div>
-
- 		<div class="view-block">
- 			<h2>Bild</h2>
- 			<?php if ($imagePreviewUrl): ?>
- 				<div style="margin-bottom:0.75rem;">
- 					<img src="<?php echo htmlspecialchars($imagePreviewUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" alt="Rezeptbild" style="max-width:200px; height:auto; display:block;">
- 				</div>
- 				<label style="display:block; margin-bottom:0.5rem;">
- 					<input type="checkbox" name="delete_image" value="1">
- 					Bild löschen
- 				</label>
- 			<?php else: ?>
- 				<p>Kein Bild vorhanden.</p>
- 			<?php endif; ?>
- 
- 			<label>
- 				Neues Bild hochladen (optional)<br>
- 				<input type="file" name="image" accept="image/*">
- 			</label>
- 		</div>
-
-
-		<div class="view-block">
-			<h2>Beschreibung</h2>
-			<textarea name="description" rows="4" style="width:100%;"><?php
-				echo htmlspecialchars($description, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-			?></textarea>
-		</div>
-
-		<div class="view-block">
-			<h2>Zutaten</h2>
-			<textarea name="ingredients" rows="8" style="width:100%;"><?php
-				echo htmlspecialchars($ingredients, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-			?></textarea>
-		</div>
-
-		<div class="view-block">
-			<h2>Zubereitung</h2>
-			<textarea name="directions" rows="10" style="width:100%;"><?php
-				echo htmlspecialchars($directions, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-			?></textarea>
-		</div>
-
-		<div class="view-block">
-			<h2>Notizen</h2>
-			<textarea name="notes" rows="4" style="width:100%;"><?php
-				echo htmlspecialchars($notes, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-			?></textarea>
-		</div>
-
-		<div class="view-block">
-			<h2>Nährwerte</h2>
-			<textarea name="nutritionalValues" rows="4" style="width:100%;"><?php
-				echo htmlspecialchars($nutritionalVals, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-			?></textarea>
-		</div>
-
-		<div class="view-block">
-			<h2>Zeit &amp; Portionen</h2>
-
-			<label>
-				Zubereitungszeit<br>
-				<input type="text" name="preparationTime" value="<?php echo htmlspecialchars($preparationTime, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" style="width:100%;">
-			</label>
-			<br><br>
-
-			<label>
-				Portionen<br>
-				<input type="text" name="servings" value="<?php echo htmlspecialchars($servings, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" style="width:100%;">
-			</label>
-		</div>
-
-		<div class="view-block">
-			<h2>Quelle</h2>
-			<input type="text" name="source" value="<?php echo htmlspecialchars($source, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" style="width:100%;">
-		</div>
-
-        <div class="editor-actions-bottom">
-        	<a href="<?php echo 'view.php?id=' . $id; ?>"><button type="button">Zurück</button></a>
-        	<button type="submit">Speichern</button>
-        </div>
-
-	</form>
-
-</main>
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-	const input  = document.getElementById('categories-input');
-	const select = document.getElementById('categories-select');
-
-	if (input && select) {
-		select.addEventListener('change', () => {
-			const val = select.value.trim();
-			if (!val) return;
-
-			let parts = input.value
-				.split(',')
-				.map(v => v.trim())
-				.filter(v => v.length > 0);
-
-			if (!parts.includes(val)) {
-				parts.push(val);
-				input.value = parts.join(', ');
-			}
-		});
-	}
-});
-</script>
-
-</body>
+<html lang="<?php echo htmlspecialchars(current_language(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">
+    <head>
+    	<meta charset="utf-8">
+    	<title><?php echo htmlspecialchars(t('editor.page_title', 'Rezept bearbeiten'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></title>
+    	<meta name="viewport" content="width=device-width, initial-scale=1">
+    	<link rel="stylesheet" href="styles.css">
+    	<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+        <link rel="icon" href="/favicon-256.png" sizes="256x256" type="image/png">
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+    </head>
+    <body>
+    
+    <header class="app-header">
+    	<div class="app-header-top">
+    		<h1><?php echo htmlspecialchars(t('editor.heading', 'Rezept bearbeiten'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></h1>
+    
+    		<?php
+    		$availableLanguages = available_languages();
+    		if (count($availableLanguages) > 1):
+    		?>
+    		<div class="language-switch">
+    			<?php echo htmlspecialchars(t('auth.language_switch_label', 'Sprache:'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+    			<?php foreach ($availableLanguages as $code): ?>
+    				<?php if ($code === current_language()): ?>
+    					<strong><?php echo htmlspecialchars(strtoupper($code), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></strong>
+                    <?php else: ?>
+                        <a href="?<?php
+            				echo htmlspecialchars(
+            					$langQueryPrefix . 'lang=' . urlencode($code),
+            					ENT_QUOTES | ENT_SUBSTITUTE,
+            					'UTF-8'
+            				);
+            			?>">
+                            <?php echo htmlspecialchars(strtoupper($code), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+                        </a>
+                    <?php endif; ?>
+    			<?php endforeach; ?>
+    		</div>
+    		<?php endif; ?>
+    	</div>
+    
+        <nav class="main-nav">
+    		<a href="index.php">
+    			<?php echo htmlspecialchars(t('nav.overview', 'Übersicht'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+    		</a>
+    		<a href="archive.php">
+    			<?php echo htmlspecialchars(t('nav.import', 'Rezept-Import'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+    		</a>
+    		<a href="editor_new.php">
+    			<?php echo htmlspecialchars(t('nav.new_recipe', 'Neues Rezept schreiben'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+    		</a>
+    		<?php if ($userId === 1): ?>
+    			<a href="admin_users.php">
+    				<?php echo htmlspecialchars(t('nav.admin_users', 'Benutzerverwaltung'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+    			</a>
+    			<a href="admin_collections.php">
+    				<?php echo htmlspecialchars(t('nav.admin_collections', 'Sammlungen verwalten'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+    			</a>
+    		<?php endif; ?>
+    		<a href="logout.php" class="logout-btn">
+    			<?php echo htmlspecialchars(t('nav.logout', 'Logout'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+    		</a>
+    	</nav>
+    </header>
+    
+    <main class="app-main editor-main">
+    	<?php if (isset($error)): ?>
+    		<div class="error-message" style="margin-bottom:1rem;"><?php echo htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></div>
+    	<?php endif; ?>
+    
+    	<form method="post" action="editor.php" enctype="multipart/form-data">
+    		<div class="editor-actions-top">
+            	<a href="<?php echo 'view.php?id=' . $id; ?>">
+    				<button type="button">
+    					<?php echo htmlspecialchars(t('editor.back_button', 'Zurück'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+    				</button>
+    			</a>
+            	<button type="submit">
+    				<?php echo htmlspecialchars(t('editor.save_button', 'Speichern'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+    			</button>
+    		</div>
+    		<input type="hidden" name="id" value="<?php echo (int)$id; ?>">
+    
+    		<div class="view-block">
+    			<h2><?php echo htmlspecialchars(t('editor.section_maindata', 'Stammdaten'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></h2>
+    
+    			<label>
+    				<?php echo htmlspecialchars(t('editor.title_label', 'Titel'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?><br>
+    				<input type="text" name="title" value="<?php echo htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" style="width:100%;">
+    			</label>
+    			<br><br>
+    
+    			<label>
+    				<?php echo htmlspecialchars(t('editor.categories_label', 'Kategorien (kommagetrennt)'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?><br>
+    				<input
+    					type="text"
+    					name="categories"
+    					id="categories-input"
+    					value="<?php echo htmlspecialchars($categoriesStr, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>"
+    					style="width:100%;"
+    				>
+    			</label>
+    			<br><br>
+    
+    			<label>
+    				<?php echo htmlspecialchars(t('editor.categories_select_label', 'Kategorie aus vorhandenen wählen'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?><br>
+    				<select id="categories-select">
+    					<option value=""><?php echo htmlspecialchars(t('editor.categories_select_placeholder', '– Kategorie auswählen –'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></option>
+    					<?php foreach ($allCategories as $catName): ?>
+    						<option value="<?php echo htmlspecialchars($catName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>">
+    							<?php echo htmlspecialchars($catName, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+    						</option>
+    					<?php endforeach; ?>
+    				</select>
+    				<small><?php echo htmlspecialchars(t('editor.categories_select_hint', 'Ausgewählte Kategorie wird dem Textfeld oben hinzugefügt.'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></small>
+    			</label>
+    			<br><br>
+    
+    			<label>
+    				<?php echo htmlspecialchars(t('editor.favorite_label', 'Favorit'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+    				<input type="checkbox" name="favorite" <?php echo $favoriteChecked ? 'checked' : ''; ?>>
+    			</label>
+    		</div>
+    
+     		<div class="view-block">
+     			<h2><?php echo htmlspecialchars(t('editor.section_image', 'Bild'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></h2>
+     			<?php if ($imagePreviewUrl): ?>
+     				<div style="margin-bottom:0.75rem;">
+     					<img src="<?php echo htmlspecialchars($imagePreviewUrl, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars(t('editor.image_alt', 'Rezeptbild'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" style="max-width:200px; height:auto; display:block;">
+     				</div>
+     				<label style="display:block; margin-bottom:0.5rem;">
+     					<input type="checkbox" name="delete_image" value="1">
+     					<?php echo htmlspecialchars(t('editor.delete_image_label', 'Bild löschen'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+     				</label>
+     			<?php else: ?>
+     				<p><?php echo htmlspecialchars(t('editor.no_image', 'Kein Bild vorhanden.'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></p>
+     			<?php endif; ?>
+     
+     			<label>
+     				<?php echo htmlspecialchars(t('editor.upload_image_label', 'Neues Bild hochladen (optional)'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?><br>
+     				<input type="file" name="image" accept="image/*">
+     			</label>
+     		</div>
+    
+    		<div class="view-block">
+    			<h2><?php echo htmlspecialchars(t('editor.section_description', 'Beschreibung'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></h2>
+    			<textarea name="description" rows="4" style="width:100%;"><?php
+    				echo htmlspecialchars($description, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    			?></textarea>
+    		</div>
+    
+    		<div class="view-block">
+    			<h2><?php echo htmlspecialchars(t('editor.section_ingredients', 'Zutaten'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></h2>
+    			<textarea name="ingredients" rows="8" style="width:100%;"><?php
+    				echo htmlspecialchars($ingredients, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    			?></textarea>
+    		</div>
+    
+    		<div class="view-block">
+    			<h2><?php echo htmlspecialchars(t('editor.section_directions', 'Zubereitung'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></h2>
+    			<textarea name="directions" rows="10" style="width:100%;"><?php
+    				echo htmlspecialchars($directions, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    			?></textarea>
+    		</div>
+    
+    		<div class="view-block">
+    			<h2><?php echo htmlspecialchars(t('editor.section_notes', 'Notizen'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></h2>
+    			<textarea name="notes" rows="4" style="width:100%;"><?php
+    				echo htmlspecialchars($notes, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    			?></textarea>
+    		</div>
+    
+    		<div class="view-block">
+    			<h2><?php echo htmlspecialchars(t('editor.section_nutrition', 'Nährwerte'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></h2>
+    			<textarea name="nutritionalValues" rows="4" style="width:100%;"><?php
+    				echo htmlspecialchars($nutritionalVals, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    			?></textarea>
+    		</div>
+    
+    		<div class="view-block">
+    			<h2><?php echo htmlspecialchars(t('editor.section_time_servings', 'Zeit &amp; Portionen'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></h2>
+    
+    			<label>
+    				<?php echo htmlspecialchars(t('editor.preparation_time_label', 'Zubereitungszeit'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?><br>
+    				<input type="text" name="preparationTime" value="<?php echo htmlspecialchars($preparationTime, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" style="width:100%;">
+    			</label>
+    			<br><br>
+    
+    			<label>
+    				<?php echo htmlspecialchars(t('editor.servings_label', 'Portionen'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?><br>
+    				<input type="text" name="servings" value="<?php echo htmlspecialchars($servings, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" style="width:100%;">
+    			</label>
+    		</div>
+    
+    		<div class="view-block">
+    			<h2><?php echo htmlspecialchars(t('editor.section_source', 'Quelle'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?></h2>
+    			<input type="text" name="source" value="<?php echo htmlspecialchars($source, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>" style="width:100%;">
+    		</div>
+    
+            <div class="editor-actions-bottom">
+            	<a href="<?php echo 'view.php?id=' . $id; ?>">
+    				<button type="button">
+    					<?php echo htmlspecialchars(t('editor.back_button', 'Zurück'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+    				</button>
+    			</a>
+            	<button type="submit">
+    				<?php echo htmlspecialchars(t('editor.save_button', 'Speichern'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
+    			</button>
+            </div>
+    
+    	</form>
+    
+    </main>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+    	const input  = document.getElementById('categories-input');
+    	const select = document.getElementById('categories-select');
+    
+    	if (input && select) {
+    		select.addEventListener('change', () => {
+    			const val = select.value.trim();
+    			if (!val) return;
+    
+    			let parts = input.value
+    				.split(',')
+    				.map(v => v.trim())
+    				.filter(v => v.length > 0);
+    
+    			if (!parts.includes(val)) {
+    				parts.push(val);
+    				input.value = parts.join(', ');
+    			}
+    		});
+    	}
+    });
+    </script>
+    
+    </body>
 </html>
