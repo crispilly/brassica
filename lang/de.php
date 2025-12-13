@@ -372,4 +372,18 @@ return [
 		'cannot_delete_self'  => 'Der aktuell angemeldete Benutzer kann nicht gelöscht werden.',
 		'delete_error_prefix' => 'Fehler beim Löschen des Benutzers: ',
 	],
+	'set_admin' => [
+		'page_title' => 'Brassica - Admin-Passwort setzen',
+		'subtitle' => 'Setze Nutzernamen und Passwort für den ersten Benutzer',
+		'subtitle_admin_note' => 'ist immer der Admin.',
+		'success' => 'Passwort erfolgreich gesetzt. Diese Installationsdatei wurde entfernt.',
+		'error_username' => 'Bitte einen Benutzernamen angeben.',
+		'error_password_fields' => 'Bitte beide Passwortfelder ausfüllen.',
+		'error_password_mismatch' => 'Passwörter stimmen nicht überein.',
+		'label_username' => 'Benutzername',
+		'label_password' => 'Neues Passwort',
+		'label_password2' => 'Passwort wiederholen',
+		'submit' => 'Passwort setzen',
+		'to_login' => 'Zum Login',
+	],
 ];

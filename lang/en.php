@@ -374,4 +374,18 @@ return [
 		'cannot_delete_self'  => 'The currently logged-in user cannot be deleted.',
 		'delete_error_prefix' => 'Error while deleting the user: ',
 	],
+	'set_admin' => [
+		'page_title' => 'Brassica - Set admin password',
+		'subtitle' => 'Set username and password for the first user',
+		'subtitle_admin_note' => 'is always the admin.',
+		'success' => 'Password set successfully. This installation file has been removed.',
+		'error_username' => 'Please enter a username.',
+		'error_password_fields' => 'Please fill in both password fields.',
+		'error_password_mismatch' => 'Passwords do not match.',
+		'label_username' => 'Username',
+		'label_password' => 'New password',
+		'label_password2' => 'Repeat password',
+		'submit' => 'Set password',
+		'to_login' => 'Go to login',
+	],
 ];
