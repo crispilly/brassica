@@ -1,38 +1,38 @@
-# Beiträge zu Brassica
+# Contributing to Brassica
 
-Danke, dass Du zum Projekt beitragen möchtest!  
-Beiträge sind willkommen – egal ob Fehlerkorrekturen, Verbesserungen, neue Funktionen oder Dokumentation.
+Thank you for your interest in contributing to the project!  
+Contributions are welcome – whether bug fixes, improvements, new features, or documentation.
 
-## Grundregeln
+## General Rules
 
-- Alle Beiträge müssen mit der Lizenz dieses Projekts kompatibel sein (GPL-3.0).  
-- Code soll klar, nachvollziehbar und gut strukturiert sein.  
-- Jede Änderung soll kurz beschrieben werden:
-  - Was wurde geändert?
-  - Warum wurde es geändert?
-  - Welche Auswirkungen hat es?
-- Diskussion größerer Änderungen bitte vorher als Issue eröffnen.
+- All contributions must be compatible with this project’s license (GPL-3.0).  
+- Code should be clear, understandable, and well structured.  
+- Each change should be briefly described:
+  - What was changed?
+  - Why was it changed?
+  - What impact does it have?
+- Please discuss larger changes in advance by opening an issue.
 
 ## Pull Requests
 
-1. Repository forken  
-2. Eigenen Branch erstellen  
-3. Änderungen durchführen  
-4. Commit mit aussagekräftiger Nachricht  
-5. Pull Request gegen den main-Branch einreichen
+1. Fork the repository  
+2. Create your own branch  
+3. Make your changes  
+4. Commit with a meaningful message  
+5. Submit a pull request against the `main` branch
 
 ## Tests
 
-- Änderungen sollten lokal geprüft werden.  
-- Import und Export von .broccoli-Dateien testen.  
-- UI-Änderungen sowohl am Desktop als auch mobil prüfen.
+- Changes should be tested locally.  
+- Test import and export of `.broccoli` files.  
+- Check UI changes on both desktop and mobile devices.
 
-## Dokumentation
+## Documentation
 
-Neue Funktionen oder veränderte Abläufe müssen in der README ergänzt werden.
+New features or changed workflows must be documented in the README.
 
-## Fragen
+## Questions
 
-Bitte ein Issue im Repository öffnen.
+Please open an issue in the repository.
 
-Danke für Deinen Beitrag zu Brassica!
+Thank you for contributing to Brassica!
