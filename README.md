@@ -56,3 +56,54 @@ Backups consist of the file `data/db.sqlite` and the `uploads/` directory.
 
 Clone the repository:
 
+```
+git clone https://github.com/YOUR-GITHUB-NAME/brassica.git
+```
+
+Upload the files to your server or web space.
+
+Set write permissions for:
+
+```
+data/
+uploads/
+```
+
+Open the application in your browser → set the admin password → done.
+
+---
+
+## Project Structure
+
+```
+public/      public web root  
+api/         API endpoints and database handling  
+views/       pages and UI templates  
+data/        SQLite database  
+uploads/     recipe images  
+assets/      icons, styles, logos  
+```
+
+---
+
+## License
+
+This project is licensed under the **GNU General Public License Version 3 (GPLv3)**.  
+The full license text can be found in the `LICENSE` file.
+
+Important:
+
+- Any further development must also be released under GPLv3.  
+- Proprietary or closed-source forks are not permitted.  
+- The software is provided without any warranty.  
+
+---
+
+## Contributing
+
+Contributions are welcome.  
+See `CONTRIBUTING.md` for details.
+
+---
+
+**Brassica – free software for free recipes.**
