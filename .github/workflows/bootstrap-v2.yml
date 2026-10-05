@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  unpack:
+  unpack-test-build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,12 +19,39 @@ jobs:
       - name: Reconstruct repository archive
         run: |
           cat .bootstrap/part-* | base64 -d > /tmp/brassica-v2.tar.gz
+          echo '11a503fade0fc3a7a41b54b4d54d220f903fe83e25ac05119434b41e1ab33ffd  /tmp/brassica-v2.tar.gz' | sha256sum -c -
           mkdir -p /tmp/brassica-v2
           tar -xzf /tmp/brassica-v2.tar.gz -C /tmp/brassica-v2
-      - name: Replace branch contents with V2 monorepo
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Web syntax and first-start database test
+        working-directory: /tmp/brassica-v2
+        run: |
+          find web -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          rm -f web/storage/database/brassica.sqlite
+          php -r "require 'web/app/bootstrap.php'; Brassica\\Core\\Installer::ensureReady(); if (!is_file(storage_path('database/brassica.sqlite'))) { exit(1); } if (!Brassica\\Core\\Installer::needsSetup()) { exit(2); }"
+      - name: Build Brassica Android APK
+        working-directory: /tmp/brassica-v2/android
+        run: ./gradlew assembleFdroidDebug
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: brassica-fdroid-debug-apk
+          path: /tmp/brassica-v2/android/app/build/outputs/apk/fdroid/debug/*.apk
+          if-no-files-found: error
+      - name: Replace branch contents with tested V2 monorepo
         run: |
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -a /tmp/brassica-v2/. .
+          rm -f web/storage/database/brassica.sqlite
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
