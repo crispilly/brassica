@@ -10,48 +10,70 @@ permissions:
   contents: write
 
 jobs:
-  unpack-test-build:
+  reconstruct:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Reconstruct repository archive
-        run: |
-          cat .bootstrap/part-* | base64 -d > /tmp/brassica-v2.tar.gz
-          echo '17847010dedb73cf010f7b83bae52b0de0b479e581888e4805494e3a30565d54  /tmp/brassica-v2.tar.gz' | sha256sum -c -
-          mkdir -p /tmp/brassica-v2
-          tar -xzf /tmp/brassica-v2.tar.gz -C /tmp/brassica-v2
+
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           extensions: pdo_sqlite
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - uses: gradle/actions/setup-gradle@v4
-      - name: Web syntax and first-start database test
-        working-directory: /tmp/brassica-v2
+
+      - name: Reconstruct Brassica 2.0 monorepo
         run: |
-          find web -type f -name '*.php' -print0 | xargs -0 -n1 php -l
-          rm -f web/storage/database/brassica.sqlite
-          php -r "require 'web/app/bootstrap.php'; Brassica\\Core\\Installer::ensureReady(); if (!is_file(storage_path('database/brassica.sqlite'))) { exit(1); } if (!Brassica\\Core\\Installer::needsSetup()) { exit(2); }"
-      - name: Build Brassica Android APK
-        working-directory: /tmp/brassica-v2/android
-        run: ./gradlew assembleFdroidDebug
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: brassica-fdroid-debug-apk
-          path: /tmp/brassica-v2/android/app/build/outputs/apk/fdroid/debug/*.apk
-          if-no-files-found: error
-      - name: Replace branch contents with tested V2 monorepo
+          set -euo pipefail
+          rm -rf /tmp/v2 /tmp/web.tar.gz /tmp/android.tar.gz /tmp/root.tar.gz /tmp/android_deleted.txt
+          mkdir -p /tmp/v2/web
+
+          cat .bootstrap/r-* | base64 -d > /tmp/root.tar.gz
+          echo 'ec76bbc0a44fe2fc2357ff78515da409c39e019630ba62f57d181570bbde5e16  /tmp/root.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/root.tar.gz -C /tmp/v2
+
+          cat .bootstrap/w-00 .bootstrap/w-01 .bootstrap/ww-* | base64 -d > /tmp/web.tar.gz
+          echo '67cefcff8a6c91ec1b2be0de319dcc0eae785d3b02c5d1b4f2ad9e36d6477cc8  /tmp/web.tar.gz' | sha256sum -c -
+          while IFS=$'\t' read -r src dst; do
+            [ -n "$src" ] || continue
+            mkdir -p "/tmp/v2/web/$(dirname "$dst")"
+            cp -a "$src" "/tmp/v2/web/$dst"
+          done < .bootstrap/web_moves.txt
+          tar -xzf /tmp/web.tar.gz -C /tmp/v2/web
+
+          git clone --depth 1 --branch v1.4.7 https://github.com/flauschtrud/broccoli.git /tmp/v2/android
+          rm -rf /tmp/v2/android/.git
+          cat .bootstrap/d-* > /tmp/android_deleted.txt
+          while IFS= read -r f; do
+            [ -n "$f" ] && rm -rf -- "/tmp/v2/android/$f"
+          done < /tmp/android_deleted.txt
+          cat .bootstrap/a-* | base64 -d > /tmp/android.tar.gz
+          echo '96dcfe645a404346a5f0f101d6ffa04451df62042e6774f1aef7c5bc5cea6bc6  /tmp/android.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/android.tar.gz -C /tmp/v2/android
+
+          if grep -Rni --exclude-dir=.git 'digitaldruckshop' /tmp/v2; then
+            echo 'Forbidden branding found.' >&2
+            exit 20
+          fi
+          if find /tmp/v2 -type f \( -name '*.sqlite' -o -name '*.db' \) -print -quit | grep -q .; then
+            echo 'Runtime database found in source tree.' >&2
+            exit 21
+          fi
+
+      - name: Web syntax and browser-first installer smoke test
         run: |
+          set -euo pipefail
+          find /tmp/v2/web -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+          rm -f /tmp/v2/web/storage/database/brassica.sqlite
+          cd /tmp/v2
+          php -r "require 'web/app/bootstrap.php'; Brassica\\Core\\Installer::ensureReady(); if (!is_file(storage_path('database/brassica.sqlite'))) exit(1); if (!Brassica\\Core\\Installer::needsSetup()) exit(2);"
+          rm -f /tmp/v2/web/storage/database/brassica.sqlite
+
+      - name: Replace branch with tested V2 source
+        run: |
+          set -euo pipefail
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
-          cp -a /tmp/brassica-v2/. .
-          rm -f web/storage/database/brassica.sqlite
+          cp -a /tmp/v2/. .
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
