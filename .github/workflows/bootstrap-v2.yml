@@ -1,0 +1,32 @@
+name: Bootstrap Brassica V2 repository
+
+on:
+  push:
+    branches: [v2-monorepo]
+    paths:
+      - '.bootstrap/complete'
+
+permissions:
+  contents: write
+
+jobs:
+  unpack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reconstruct repository archive
+        run: |
+          cat .bootstrap/part-* | base64 -d > /tmp/brassica-v2.tar.gz
+          mkdir -p /tmp/brassica-v2
+          tar -xzf /tmp/brassica-v2.tar.gz -C /tmp/brassica-v2
+      - name: Replace branch contents with V2 monorepo
+        run: |
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a /tmp/brassica-v2/. .
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Brassica 2.0 monorepo source'
+          git push origin HEAD:v2-monorepo
