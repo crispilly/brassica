@@ -19,7 +19,7 @@ jobs:
       - name: Reconstruct repository archive
         run: |
           cat .bootstrap/part-* | base64 -d > /tmp/brassica-v2.tar.gz
-          echo '11a503fade0fc3a7a41b54b4d54d220f903fe83e25ac05119434b41e1ab33ffd  /tmp/brassica-v2.tar.gz' | sha256sum -c -
+          echo '17847010dedb73cf010f7b83bae52b0de0b479e581888e4805494e3a30565d54  /tmp/brassica-v2.tar.gz' | sha256sum -c -
           mkdir -p /tmp/brassica-v2
           tar -xzf /tmp/brassica-v2.tar.gz -C /tmp/brassica-v2
       - uses: shivammathur/setup-php@v2
