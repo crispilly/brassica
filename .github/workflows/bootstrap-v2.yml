@@ -24,7 +24,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
 
       - name: Reconstruct Brassica 2.0 source
         run: |
@@ -50,6 +49,12 @@ jobs:
           cd /tmp/brassica-v2
           php -r "require 'web/app/bootstrap.php'; Brassica\\Core\\Installer::ensureReady(); if (!is_file(storage_path('database/brassica.sqlite'))) exit(1); if (!Brassica\\Core\\Installer::needsSetup()) exit(2);"
           rm -f /tmp/brassica-v2/web/storage/database/brassica.sqlite
+
+      - name: Prepare Android SDK
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-37"
 
       - name: Build Android APK
         working-directory: /tmp/brassica-v2/android
