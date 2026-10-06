@@ -55,7 +55,7 @@ jobs:
           set -euo pipefail
           SDKMANAGER=/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platform-tools" "platforms;android-37"
+          "$SDKMANAGER" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
 
       - name: Build Android APK
         working-directory: /tmp/brassica-v2/android
