@@ -1,0 +1,12 @@
+{
+  "food": [
+    {
+      "name": "flauschfrucht",
+      "months": [9, 10, 11]
+    },
+    {
+      "name": "apple",
+      "months": [7, 8, 9, 10, 11]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+# Web runtime data
+web/storage/database/*.sqlite
+web/storage/database/*.sqlite-*
+web/storage/images/*
+!web/storage/images/.gitkeep
+web/storage/imports/archives/*
+!web/storage/imports/archives/.gitkeep
+web/storage/temp/*
+!web/storage/temp/.gitkeep
+web/storage/logs/*
+!web/storage/logs/.gitkeep
+
+# Android / Gradle
+android/.gradle/
+android/local.properties
+android/**/build/
+android/captures/

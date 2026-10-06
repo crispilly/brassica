@@ -1,109 +1,58 @@
-# Brassica – The Broccoli Web App
+# Brassica
 
-Brassica is a free web app for managing, editing, and exchanging recipes in the
-`.broccoli` format used by the Broccoli mobile app. The web app allows you to
-maintain recipes comfortably in the browser, create collections, and export
-content again as `.broccoli` files.
+Brassica ist eine Rezeptverwaltung mit Webanwendung und Android-App. Das Repository enthält beide Komponenten als Monorepo.
 
-The software is released under the **GNU GPL v3**.  
-This guarantees that all further development will also remain open source.
+## Komponenten
 
----
+- `web/` — Brassica Web **2.0** (PHP + SQLite)
+- `android/` — Brassica Android, Fork von Broccoli 1.4.7
+- `docs/` — Architektur, Sync und Dateiformate
 
-## Features
+## Brassica Web 2.0
 
-- Import recipes in the `.broccoli` format  
-- Import complete recipe collections  
-- Edit all recipe data directly in the browser  
-- Export modified recipes as `.broccoli` files  
-- Create and share collections via public links  
-- Multi-user login system  
-- Upload and manage recipe images  
-- Compatible with the official Broccoli mobile app  
+Wesentliche Funktionen:
 
----
+- zentraler Front Controller und Routing
+- nur `web/public/` als DocumentRoot
+- private SQLite-Datenbank und private Laufzeitdaten unter `web/storage/`
+- Rezeptverwaltung, Kategorien, Sammlungen, Import/Export
+- Multikategorie-Filter mit ODER/UND
+- Kochmodus mit seitenweisen Schritten und Screen Wake Lock
+- Sync-API v1 für Brassica Android
 
-## Compatibility with the Broccoli App
+Installation: [`web/README.md`](web/README.md)
 
-Brassica uses the same data structure as the Broccoli app.
+## Brassica Android
 
-You can:
+Basis: Broccoli 1.4.7, GPLv3.
 
-- Export recipes → import them into Brassica → edit → export again  
-- Create new recipes in the browser → open them in the app  
-- Create and share collections  
+Zusätzlich zu den vorhandenen Broccoli-Funktionen:
 
-This keeps recipes flexible and usable across mobile devices and the browser.
+- App-ID `de.crispilly.brassica`
+- Multikategorie-Filter mit ODER/UND
+- Import von `.broccoli` und `.broccoli-archive`
+- Export einzelner oder ausgewählter Rezepte
+- robuste Bildbehandlung für JPG/JPEG/PNG/WebP
+- Servereinstellungen und Sync-Vorschau
+- selektiver bidirektionaler Sync mit Brassica Web
 
----
+Details: [`android/README.md`](android/README.md)
 
-## Self-Hosting Requirements
+## Datenschutz / Repository-Inhalt
 
-- Web server (Apache, Nginx, or standard shared hosting)  
-- PHP 8.x  
-- PHP extensions:
-  - `pdo_sqlite` or `sqlite3`
-  - `zip` / `ZipArchive`
-- Write permissions for:
-  - `data/` (SQLite database)
-  - `uploads/` (images)
+Produktive Daten gehören nicht ins Repository. Insbesondere werden nicht versioniert:
 
-Backups consist of the file `data/db.sqlite` and the `uploads/` directory.
+- SQLite-Datenbanken
+- Rezeptbilder aus dem laufenden Betrieb
+- Importarchive
+- Passwörter oder Zugangsdaten
+- lokale Android-Konfigurationen
 
----
+## Lizenz
 
-## Installation
+Dieses Repository steht unter GPLv3. Der Android-Teil basiert auf Broccoli und behält die entsprechenden Lizenz- und Herkunftshinweise bei. Siehe [`LICENSE`](LICENSE) und [`docs/UPSTREAM.md`](docs/UPSTREAM.md).
 
-Clone the repository:
 
-```
-git clone https://github.com/YOUR-GITHUB-NAME/brassica.git
-```
+## Web-Erstinstallation
 
-Upload the files to your server or web space.
-
-Set write permissions for:
-
-```
-data/
-uploads/
-```
-
-Open the application in your browser → set the admin password → done.
-
----
-
-## Project Structure
-
-```
-public/      public web root  
-api/         API endpoints and database handling  
-views/       pages and UI templates  
-data/        SQLite database  
-uploads/     recipe images  
-assets/      icons, styles, logos  
-```
-
----
-
-## License
-
-This project is licensed under the **GNU General Public License Version 3 (GPLv3)**.  
-The full license text can be found in the `LICENSE` file.
-
-Important:
-
-- Any further development must also be released under GPLv3.  
-- Proprietary or closed-source forks are not permitted.  
-- The software is provided without any warranty.  
-
----
-
-## Contributing
-
-Contributions are welcome.  
-See `CONTRIBUTING.md` for details.
-
----
-
-**Brassica – free software for free recipes.**
+Brassica Web 2.0 benötigt keine Shell-Installation. Nach dem Entpacken und Setzen des DocumentRoot auf `web/public/` wird die SQLite-Datenbank beim ersten Browseraufruf automatisch angelegt und `/setup` führt durch das Anlegen des ersten Administrators.
