@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="region_labels">
+        <item>@string/region_central_europe</item>
+        <item>@string/region_mediterranean</item>
+        <item>@string/region_north_america_colder</item>
+        <item>@string/region_north_america_warmer</item>
+        <item>@string/region_japan</item>
+    </string-array>
+
+    <string-array name="region_values">
+        <item>central_europe</item>
+        <item>mediterranean</item>
+        <item>north_america_colder</item>
+        <item>north_america_warmer</item>
+        <item>japan</item>
+    </string-array>
+
+    <string-array name="language_labels">
+        <item>@string/english</item>
+        <item>@string/spanish</item>
+        <item>@string/french</item>
+        <item>@string/german</item>
+        <item>@string/polish</item>
+        <item>@string/italian</item>
+        <item>@string/chinese</item>
+        <item>@string/turkish</item>
+        <item>@string/serbian_latin</item>
+        <item>@string/hebrew</item>
+        <item>@string/brazilian_portuguese</item>
+        <item>@string/norwegian_bokmal</item>
+        <item>@string/russian</item>
+        <item>@string/japanese</item>
+    </string-array>
+
+    <string-array name="language_values">
+        <item>en</item>
+        <item>es</item>
+        <item>fr</item>
+        <item>de</item>
+        <item>pl</item>
+        <item>it</item>
+        <item>zh</item>
+        <item>tr</item>
+        <item>sr-Latn</item>
+        <item>iw</item>
+        <item>pt-BR</item>
+        <item>nb</item>
+        <item>ru</item>
+        <item>ja</item>
+    </string-array>
+
+    <string-array name="theme_entries">
+        <item>@string/light</item>
+        <item>@string/dark</item>
+        <item>@string/system_default</item>
+    </string-array>
+
+    <string-array name="theme_values">
+        <item>@string/MODE_NIGHT_NO</item>
+        <item>@string/MODE_NIGHT_YES</item>
+        <item>@string/MODE_NIGHT_FOLLOW_SYSTEM</item>
+    </string-array>
+
+</resources>

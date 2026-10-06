@@ -1,0 +1,191 @@
+import com.android.tools.profgen.ArtProfileKt
+import com.android.tools.profgen.ArtProfileSerializer
+import com.android.tools.profgen.DexFile
+
+apply plugin: 'com.android.application'
+apply plugin: "androidx.navigation.safeargs"
+apply plugin: 'com.mikepenz.aboutlibraries.plugin'
+apply plugin: 'org.jetbrains.kotlin.android'
+apply plugin: 'androidx.room'
+
+android {
+    compileSdk 37
+    defaultConfig {
+        testInstrumentationRunnerArguments notAnnotation: 'androidx.test.filters.FlakyTest'
+        applicationId "de.crispilly.brassica"
+        minSdkVersion 26
+        targetSdk 37
+        versionCode 1040700 // versionMajor * 1000000 + versionMinor * 10000 + versionPatch * 100 + versionBuild
+        versionName "1.4.7-brassica-1"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    bundle {
+        language {
+            enableSplit = false
+        }
+    }
+    flavorDimensions += "appstore"
+    productFlavors {
+        play {
+            dimension "appstore"
+            resValue 'string', 'store_url', 'https://play.google.com/store/apps/details?id=de.crispilly.brassica'
+        }
+        fdroid {
+            dimension "appstore"
+            resValue 'string', 'store_url', 'https://f-droid.org/packages/de.crispilly.brassica'
+        }
+    }
+    androidResources {
+        generateLocaleConfig = true
+    }
+    buildFeatures {
+        dataBinding = true
+        buildConfig = true
+    }
+    applicationVariants.configureEach { variant ->
+        variant.resValue "string", "versionName", variant.versionName
+    }
+    room {
+        schemaDirectory "$projectDir/schemas"
+    }
+    testOptions {
+        animationsDisabled = true
+        managedDevices {
+            localDevices {
+                pixel2api30 {
+                    device = "Pixel 2"
+                    apiLevel = 30
+                    systemImageSource = "aosp-atd"
+                }
+                pixel10api36 {
+                    device = "Pixel 10"
+                    apiLevel = 36
+                    systemImageSource = "aosp-atd"
+                }
+            }
+        }
+    }
+    lint {
+        abortOnError false
+    }
+    namespace 'com.flauschcode.broccoli'
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+aboutLibraries {
+    // Remove the "generated" timestamp to allow for reproducible builds
+    excludeFields = ["generated"]
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    implementation 'androidx.core:core-ktx:1.16.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.0'
+    runtimeOnly group: 'com.google.android.material', name: 'material', version: '1.12.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+
+    implementation "androidx.navigation:navigation-fragment:$nav_version"
+    implementation "androidx.navigation:navigation-ui:$nav_version"
+
+    implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
+    implementation "androidx.viewpager2:viewpager2:1.1.0"
+    implementation 'id.zelory:compressor:2.1.1' // 3.0.0 does not work with Java
+
+    implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "androidx.room:room-compiler:$room_version"
+    testImplementation "androidx.room:room-testing:$room_version"
+
+    def fragment_version = "1.8.7"
+    implementation "androidx.fragment:fragment:$fragment_version"
+    debugImplementation ("androidx.fragment:fragment-testing:$fragment_version"){
+        exclude group: 'androidx.test', module : 'core'
+    }
+
+    def preference_version = "1.2.1"
+    implementation "androidx.preference:preference:$preference_version"
+
+    playImplementation 'com.google.android.play:review:2.0.2'
+
+    def dagger_version = "2.45"
+    implementation group: 'com.google.dagger', name: 'dagger', version: "$dagger_version"
+    annotationProcessor "com.google.dagger:dagger-compiler:$dagger_version"
+    implementation "com.google.dagger:dagger-android:$dagger_version"
+    annotationProcessor "com.google.dagger:dagger-android-processor:$dagger_version"
+    implementation "com.google.dagger:dagger-android-support:$dagger_version"
+
+    implementation 'com.github.bumptech.glide:glide:4.15.1'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.15.1'
+
+    implementation 'org.jsoup:jsoup:1.22.1'
+
+    implementation "com.mikepenz:aboutlibraries:11.2.1"
+
+    def jackson_version = "2.15.4"
+    implementation "com.fasterxml.jackson.core:jackson-core:$jackson_version"
+    implementation "com.fasterxml.jackson.core:jackson-annotations:$jackson_version"
+    implementation "com.fasterxml.jackson.core:jackson-databind:$jackson_version"
+
+    implementation group: 'commons-io', name: 'commons-io', version: '2.13.0'
+
+    def mockito_version = "5.7.0"
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation "org.mockito:mockito-core:$mockito_version"
+    testImplementation 'org.hamcrest:hamcrest:2.2'
+    testImplementation 'androidx.arch.core:core-testing:2.2.0'
+
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation "org.mockito:mockito-core:$mockito_version"
+    androidTestImplementation "org.mockito:mockito-android:$mockito_version"
+    androidTestImplementation 'androidx.test:core:1.6.1'
+
+    def espresso_version = "3.6.1"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$espresso_version"
+    androidTestImplementation "androidx.test.espresso:espresso-intents:$espresso_version"
+    androidTestImplementation "androidx.test.espresso:espresso-contrib:$espresso_version"
+    androidTestImplementation "androidx.test.espresso:espresso-accessibility:$espresso_version"
+
+    implementation "androidx.test.espresso:espresso-idling-resource:$espresso_version"
+
+    androidTestImplementation "com.google.dagger:dagger:$dagger_version"
+    androidTestAnnotationProcessor "com.google.dagger:dagger-compiler:$dagger_version"
+    implementation 'com.github.Gkemon:Android-XML-to-PDF-Generator:2.6.8'
+}
+
+// see https://gitlab.com/fdroid/wiki/-/wikis/HOWTO:-diff-&-fix-APKs-for-Reproducible-Builds#differing-assetsdexoptbaselineprofm-easy-to-fix
+// probably not needed anymore after upgrading to AGP 8.1.0
+project.afterEvaluate {
+    tasks.each { task ->
+        if (task.name.startsWith("compile") && task.name.endsWith("ReleaseArtProfile")) {
+            task.doLast {
+                outputs.files.each { file ->
+                    if (file.name.endsWith(".profm")) {
+                        println("Sorting ${file} ...")
+                        def version = ArtProfileSerializer.valueOf("METADATA_0_0_2")
+                        def profile = ArtProfileKt.ArtProfile(file)
+                        def keys = new ArrayList(profile.profileData.keySet())
+                        def sortedData = new LinkedHashMap()
+                        Collections.sort keys, new DexFile.Companion()
+                        keys.each { key -> sortedData[key] = profile.profileData[key] }
+                        new FileOutputStream(file).with {
+                            write(version.magicBytes$profgen)
+                            write(version.versionBytes$profgen)
+                            version.write$profgen(it, sortedData, "")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

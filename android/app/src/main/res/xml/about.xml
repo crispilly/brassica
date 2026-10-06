@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:title="@string/help">
+
+                <Preference
+                    app:icon="@drawable/ic_info_24dp"
+                    app:key="github"
+                    app:summary="@string/link_to_github"
+                    app:title="@string/github">
+                        <intent
+                            android:action="android.intent.action.VIEW"
+                            android:data="@string/link_to_github" />
+                </Preference>
+
+                <Preference
+                    app:icon="@drawable/ic_info_24dp"
+                    app:key="version"
+                    app:summary="@string/versionName"
+                    app:title="@string/version" />
+
+        </PreferenceCategory>
+
+        <PreferenceCategory
+            app:iconSpaceReserved="false"
+            app:title="@string/legal_policies">
+
+        <Preference
+            app:icon="@drawable/ic_info_24dp"
+            app:key="oss-licenses"
+            app:title="@string/open_source_licenses"
+            app:summary="@string/open_source_licenses_text" />
+
+        <Preference
+            app:icon="@drawable/ic_privacy_tip_24"
+            app:key="privacy-policy"
+            app:title="@string/privacy_policy"
+            app:summary="@string/privacy_policy_summary">
+                <intent
+                    android:action="android.intent.action.VIEW"
+                    android:data="@string/privacy_policy_url" />
+        </Preference>
+
+        </PreferenceCategory>
+
+    </PreferenceScreen>

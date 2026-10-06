@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ImageView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cooking_assistant_control"
+    android:adjustViewBounds="true"
+    android:layout_width="0dp"
+    android:minHeight="@dimen/min_height_for_accessibility"
+    android:layout_height="wrap_content"
+    android:layout_weight="1"
+    android:padding="5dp"
+    android:src="@drawable/ic_bullet_24dp"
+    android:contentDescription="@null"
+    app:tint="?attr/colorControlNormal" />

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<layout>
+
+    <data>
+        <variable name="direction" type="com.flauschcode.broccoli.recipe.directions.Direction" />
+    </data>
+
+    <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="5dp">
+
+        <TextView
+            android:id="@+id/direction_position"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="10dp"
+            android:textColor="?attr/colorPrimary"
+            android:gravity="center"
+            android:text="@{String.valueOf(direction.position)}"/>
+
+        <TextView
+            android:id="@+id/direction_text"
+            android:layout_toEndOf="@+id/direction_position"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@{direction.text}"/>
+
+    </RelativeLayout>
+
+</layout>

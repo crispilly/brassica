@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout>
+
+    <data>
+        <import type="android.view.View"/>
+        <import type="android.text.TextUtils"/>
+        <variable name="recipe" type="com.flauschcode.broccoli.recipe.Recipe" />
+    </data>
+
+    <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:background="?attr/colorSurface"
+        android:id="@+id/scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:nestedScrollingEnabled="@{recipe.imageName.empty? false : true}"
+        tools:context="com.flauschcode.broccoli.recipe.details.RecipeDetailsActivity"
+        tools:showIn="@layout/activity_recipe_details">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="@dimen/text_margin"
+            android:paddingEnd="@dimen/text_margin"
+            android:paddingTop="@dimen/text_margin"
+            android:paddingBottom="90dp">
+
+            <TextView
+                android:id="@+id/details_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.AppCompat.Large"
+                android:text="@{recipe.title.trim()}" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/text_margin"
+                android:visibility="@{TextUtils.isEmpty(recipe.servings) &amp;&amp; TextUtils.isEmpty(recipe.preparationTime) ? View.GONE : View.VISIBLE}">
+
+                <ImageView
+                    android:id="@+id/details_icon_servings"
+                    android:visibility="@{TextUtils.isEmpty(recipe.servings) ? View.GONE : View.VISIBLE}"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/details_servings"
+                    app:layout_constraintBottom_toBottomOf="@id/details_servings"
+                    android:src="@drawable/ic_person_24dp"
+                    android:contentDescription="@string/servings"
+                    android:labelFor="@id/details_servings"
+                    app:tint="?attr/colorControlNormal"/>
+
+                <TextView
+                    android:id="@+id/details_servings"
+                    android:visibility="@{TextUtils.isEmpty(recipe.servings) ? View.GONE : View.VISIBLE}"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/details_icon_servings"
+                    android:paddingStart="5dp"
+                    android:paddingEnd="50dp"
+                    android:text="@{recipe.servings}" />
+
+                <ImageView
+                    android:id="@+id/details_icon_preparation_time"
+                    android:visibility="@{TextUtils.isEmpty(recipe.preparationTime) ? View.GONE : View.VISIBLE}"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintStart_toEndOf="@id/details_servings"
+                    app:layout_constraintTop_toTopOf="@id/details_preparation_time"
+                    app:layout_constraintBottom_toBottomOf="@id/details_preparation_time"
+                    android:layout_marginEnd="@dimen/text_margin"
+                    android:src="@drawable/ic_time_24dp"
+                    android:contentDescription="@string/preparation_time"
+                    android:labelFor="@id/details_preparation_time"
+                    app:tint="?attr/colorControlNormal"/>
+
+                <TextView
+                    android:id="@+id/details_preparation_time"
+                    android:visibility="@{TextUtils.isEmpty(recipe.preparationTime) ? View.GONE : View.VISIBLE}"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/details_icon_preparation_time"
+                    android:layout_marginStart="5dp"
+                    android:text="@{recipe.preparationTime}" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/text_margin"
+                android:visibility="@{recipe.categories.isEmpty() ? View.GONE : View.VISIBLE}">
+
+                <ImageView
+                    android:id="@+id/details_icon_categories"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/details_categories"
+                    app:layout_constraintBottom_toBottomOf="@id/details_categories"
+                    android:src="@drawable/ic_categories_24dp"
+                    android:contentDescription="@string/categories"
+                    android:labelFor="@id/details_categories"
+                    app:tint="?attr/colorControlNormal"/>
+
+                <TextView
+                    android:id="@+id/details_categories"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toEndOf="@id/details_icon_categories"
+                    android:layout_marginStart="5dp"
+                    app:categories="@{recipe.categories}" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="@dimen/text_margin"
+                android:visibility="@{TextUtils.isEmpty(recipe.description) &amp;&amp; TextUtils.isEmpty(recipe.source) ? View.GONE : View.VISIBLE}">
+
+                <TextView
+                    android:id="@+id/details_description"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="5dp"
+                    android:visibility="@{TextUtils.isEmpty(recipe.description) ? View.GONE : View.VISIBLE}"
+                    app:description="@{recipe.description}" />
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:visibility="@{TextUtils.isEmpty(recipe.source) ? View.GONE : View.VISIBLE}">
+
+                    <ImageView
+                        android:id="@+id/details_icon_source"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/details_source"
+                        app:layout_constraintBottom_toBottomOf="@id/details_source"
+                        android:src="@drawable/ic_link_24dp"
+                        android:contentDescription="@string/source"
+                        android:labelFor="@id/details_source"
+                        app:tint="?attr/colorControlNormal"/>
+
+                    <TextView
+                        android:id="@+id/details_source"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/details_icon_source"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        android:textColorLink="?attr/colorPrimary"
+                        android:layout_marginStart="10dp"
+                        android:autoLink="web"
+                        android:text="@{recipe.source}" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="@dimen/text_margin"
+                android:visibility="@{TextUtils.isEmpty(recipe.ingredients) ? View.GONE : View.VISIBLE}">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="5dp"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+                    android:textColor="?attr/colorPrimary"
+                    android:text="@string/ingredients" />
+
+                <LinearLayout
+                    android:id="@+id/details_ingredients"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    app:ingredients="@{recipe.ingredients}" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="@dimen/text_margin"
+                android:visibility="@{TextUtils.isEmpty(recipe.directions) ? View.GONE : View.VISIBLE}">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="5dp"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+                    android:textColor="?attr/colorPrimary"
+                    android:text="@string/directions" />
+
+                <LinearLayout
+                    android:id="@+id/details_directions"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    app:directions="@{recipe.directions}" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="@dimen/text_margin"
+                android:visibility="@{TextUtils.isEmpty(recipe.nutritionalValues) ? View.GONE : View.VISIBLE}">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="5dp"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+                    android:textColor="?attr/colorPrimary"
+                    android:text="@string/nutritional_values" />
+
+                <TextView
+                    android:id="@+id/details_nutritional_values"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@{recipe.nutritionalValues}" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="@dimen/text_margin"
+                android:visibility="@{TextUtils.isEmpty(recipe.notes) ? View.GONE : View.VISIBLE}">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="5dp"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+                    android:textColor="?attr/colorPrimary"
+                    android:text="@string/notes" />
+
+                <TextView
+                    android:id="@+id/details_notes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@{recipe.notes}" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </androidx.core.widget.NestedScrollView>
+
+</layout>

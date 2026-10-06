@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/nav_recipes">
+
+    <fragment
+        android:id="@+id/nav_recipes"
+        android:name="com.flauschcode.broccoli.recipe.list.RecipeFragment"
+        android:label="@string/recipes"
+        tools:layout="@layout/fragment_recipes">
+
+        <argument
+            android:name="seasonalFood"
+            app:argType="com.flauschcode.broccoli.seasons.SeasonalFood"
+            app:nullable="true"
+            android:defaultValue="@null" />
+
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_categories"
+        android:name="com.flauschcode.broccoli.category.CategoryFragment"
+        android:label="@string/categories"
+        tools:layout="@layout/fragment_recipes" />
+
+    <fragment
+        android:id="@+id/nav_seasons"
+        android:name="com.flauschcode.broccoli.seasons.SeasonsFragment"
+        android:label="@string/seasonal_calendar"
+        tools:layout="@layout/fragment_seasons">
+
+        <action
+            android:id="@+id/action_search_for_seasonal_food"
+            app:destination="@id/nav_recipes">
+
+            <argument
+                android:name="seasonalFood"
+                app:argType="com.flauschcode.broccoli.seasons.SeasonalFood" />
+
+        </action>
+
+    </fragment>
+
+    <fragment
+        android:id="@+id/nav_support"
+        android:name="com.flauschcode.broccoli.support.SupportFragment"
+        android:label="@string/support_the_app" />
+
+    <fragment
+        android:id="@+id/nav_backup_and_restore"
+        android:name="com.flauschcode.broccoli.backup.BackupAndRestoreFragment"
+        android:label="@string/backup_and_restore" />
+
+    <fragment
+        android:id="@+id/nav_sync"
+        android:name="com.flauschcode.broccoli.sync.SyncFragment"
+        android:label="@string/sync_title"
+        tools:layout="@layout/fragment_sync" />
+
+    <fragment
+        android:id="@+id/nav_settings"
+        android:name="com.flauschcode.broccoli.settings.SettingsFragment"
+        android:label="@string/settings" />
+
+    <fragment
+        android:id="@+id/nav_about"
+        android:name="com.flauschcode.broccoli.about.AboutFragment"
+        android:label="@string/about_the_app" />
+
+</navigation>

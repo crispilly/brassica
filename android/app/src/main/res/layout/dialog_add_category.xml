@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <data>
+        <variable name="category" type="com.flauschcode.broccoli.category.Category" />
+    </data>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/category_name_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="@dimen/text_margin"
+            android:paddingBottom="0dp"
+            app:startIconDrawable="@drawable/ic_title_24dp"
+            android:hint="@string/category_name">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/category_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textCapSentences"
+                android:singleLine="true"
+                android:text="@={category.name}" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <TextView
+            android:id="@+id/delete_category_warning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="@dimen/text_margin"
+            android:layout_marginStart="@dimen/text_margin"
+            android:layout_marginEnd="@dimen/text_margin"
+            android:text="@string/delete_category_question"
+            android:textColor="?attr/colorError"
+            android:visibility="gone"/>
+
+    </LinearLayout>
+
+</layout>

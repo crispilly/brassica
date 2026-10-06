@@ -1,0 +1,14 @@
+Options -Indexes
+RewriteEngine On
+
+# Reale öffentliche Assets direkt ausliefern.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Alle Anwendungsrouten zentral über den Front Controller.
+RewriteRule ^ index.php [QSA,L]
+
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>

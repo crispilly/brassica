@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_details_unlike"
+        android:icon="@drawable/ic_favorite_24dp"
+        android:title="@string/remove_from_favorite_action"
+        android:onClick="toggleFavorite"
+        android:visible="false"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_details_like"
+        android:icon="@drawable/ic_favorite_border_24dp"
+        android:title="@string/mark_as_favorite_action"
+        android:onClick="toggleFavorite"
+        android:visible="false"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_details_share"
+        android:icon="@drawable/ic_menu_share_24dp"
+        android:title="@string/share_action"
+        android:onClick="share"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_details_share_as_file"
+        android:title="@string/share_as_file_action"
+        android:onClick="shareAsFile"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_details_edit"
+        android:icon="@drawable/ic_menu_edit_24dp"
+        android:title="@string/edit_action"
+        android:onClick="edit"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_details_duplicate"
+        android:title="@string/duplicate_action"
+        android:onClick="duplicate"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_details_delete"
+        android:icon="@drawable/ic_menu_delete_24dp"
+        android:title="@string/delete_action"
+        android:onClick="delete"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_details_create_pdf"
+        android:title="@string/create_pdf"
+        android:onClick="createPDF"
+        app:showAsAction="never" />
+</menu>

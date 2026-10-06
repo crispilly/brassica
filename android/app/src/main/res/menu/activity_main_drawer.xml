@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <group android:id="@+id/group_app">
+
+        <item android:id="@+id/nav_recipes"
+            android:icon="@drawable/ic_menu_recipes_24dp"
+            android:title="@string/recipes" />
+
+        <item android:id="@+id/nav_categories"
+            android:icon="@drawable/ic_categories_24dp"
+            android:title="@string/categories" />
+
+        <item android:id="@+id/nav_seasons"
+            android:icon="@drawable/ic_eco_24"
+            android:title="@string/seasonal_calendar" />
+
+    </group>
+
+    <group>
+        <item android:id="@+id/nav_support"
+            android:icon="@drawable/ic_menu_support_24"
+            android:title="@string/support_the_app" />
+    </group>
+
+    <group android:id="@+id/group_settings">
+
+        <item android:id="@+id/nav_backup_and_restore"
+            android:icon="@drawable/ic_import_export_24dp"
+            android:title="@string/backup_and_restore" />
+
+        <item android:id="@+id/nav_sync"
+            android:icon="@drawable/ic_import_export_24dp"
+            android:title="@string/sync_title" />
+
+        <item android:id="@+id/nav_settings"
+            android:icon="@drawable/ic_settings_24"
+            android:title="@string/settings" />
+
+        <item android:id="@+id/nav_about"
+            android:icon="@drawable/ic_info_24dp"
+            android:title="@string/about_the_app" />
+
+    </group>
+
+</menu>

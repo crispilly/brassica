@@ -1,0 +1,30 @@
+name: Web checks
+
+on:
+  push:
+    paths:
+      - 'web/**'
+      - '.github/workflows/web.yml'
+  pull_request:
+    paths:
+      - 'web/**'
+      - '.github/workflows/web.yml'
+  workflow_dispatch:
+
+jobs:
+  web-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite
+      - name: PHP syntax check
+        run: find web -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Browser-installer database smoke test
+        run: |
+          rm -f web/storage/database/brassica.sqlite
+          php -r "require 'web/app/bootstrap.php'; Brassica\\Core\\Installer::ensureReady(); if (!is_file(storage_path('database/brassica.sqlite'))) { exit(1); } if (!Brassica\\Core\\Installer::needsSetup()) { exit(2); }"
+          test -s web/storage/database/brassica.sqlite
+          rm -f web/storage/database/brassica.sqlite
