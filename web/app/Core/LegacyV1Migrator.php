@@ -59,10 +59,6 @@ final class LegacyV1Migrator
         try {
             self::validateDatabase($temporaryDatabasePath);
 
-            if (!@rename($temporaryDatabasePath, $targetDatabasePath)) {
-                throw new RuntimeException('Die migrierte Datenbank konnte nicht aktiviert werden.');
-            }
-
             $imagesCopied = self::copyDirectoryFiles(
                 base_path('data/images'),
                 storage_path('images')
@@ -72,6 +68,10 @@ final class LegacyV1Migrator
                 base_path('data/uploads/archives'),
                 storage_path('imports/archives')
             );
+
+            if (!@rename($temporaryDatabasePath, $targetDatabasePath)) {
+                throw new RuntimeException('Die migrierte Datenbank konnte nicht aktiviert werden.');
+            }
 
             $report = [
                 'migrated' => true,
@@ -176,8 +176,8 @@ final class LegacyV1Migrator
         $path = storage_path('logs/v1-migration.json');
         $json = json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
-        if ($json === false || @file_put_contents($path, $json . PHP_EOL) === false) {
-            throw new RuntimeException('Migrationsprotokoll konnte nicht geschrieben werden.');
+        if ($json !== false) {
+            @file_put_contents($path, $json . PHP_EOL);
         }
     }
 }
