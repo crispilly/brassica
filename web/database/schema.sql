@@ -90,3 +90,16 @@ CREATE TABLE sync_tokens (
 );
 
 CREATE INDEX idx_sync_tokens_user_id ON sync_tokens(user_id);
+
+
+CREATE TABLE recipe_shares (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    owner_id   INTEGER NOT NULL,
+    recipe_id  INTEGER NOT NULL UNIQUE,
+    token      TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX idx_recipe_shares_owner_id ON recipe_shares(owner_id);
+CREATE INDEX idx_recipe_shares_token ON recipe_shares(token);
