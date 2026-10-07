@@ -998,4 +998,10 @@
     <string name="sync_done_title">Synchronisierung abgeschlossen</string>
     <string name="sync_conflict_label">Konflikt</string>
     <string name="sync_nothing_selected">Kein Rezept für die Synchronisierung ausgewählt.</string>
+    <string name="share_as_broccoli_action">Als .broccoli teilen</string>
+    <string name="save_as_broccoli_action">Als .broccoli speichern</string>
+    <string name="share_web_link_action">Web-Link teilen</string>
+    <string name="share_web_link_creating">Web-Link wird erstellt…</string>
+    <string name="share_web_link_failed">Der Web-Link konnte nicht erstellt werden.</string>
+    <string name="recipe_saved_as_broccoli_message">Rezept wurde als .broccoli gespeichert.</string>
 </resources>
