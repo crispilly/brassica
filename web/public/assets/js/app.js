@@ -464,29 +464,46 @@ async function shareSelectedRecipes() {
 		return;
 	}
 
-	// genau 1 Rezept: Direktlink auf view.php teilen, keine Sammlung anlegen
+	// genau 1 Rezept: dauerhaften Freigabe-Token erzeugen/wiederverwenden
 	if (ids.length === 1) {
-		const id = ids[0];
-		const origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
-		const url = origin + '/view.php?id=' + encodeURIComponent(id);
-
 		try {
+			const res = await fetch(`${API_BASE}/recipe_share.php`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Accept': 'application/json'
+				},
+				body: JSON.stringify({ id: ids[0] })
+			});
+
+			if (!res.ok) {
+				throw new Error(`HTTP ${res.status}`);
+			}
+
+			const data = await res.json();
+			let url = data && data.url ? data.url : '';
+			if (!url) {
+				throw new Error('Kein Freigabe-Link erhalten.');
+			}
+
+			if (!/^https?:\/\//i.test(url)) {
+				const origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
+				url = origin + (url.charAt(0) === '/' ? url : '/' + url);
+			}
+
 			if (navigator.clipboard && navigator.clipboard.writeText) {
 				await navigator.clipboard.writeText(url);
 			}
-		} catch (e) {
-			const logMsg = msg(
-				'clipboard_collection_warn_log',
-				'Konnte Link nicht in die Zwischenablage kopieren:'
-			);
-			console.warn(logMsg, e);
-		}
 
-		const pattern = msg(
-			'share_single_copied',
-			'Link zum Rezept wurde in die Zwischenablage kopiert:\n\n{url}'
-		);
-		alert(pattern.replace('{url}', url));
+			const pattern = msg(
+				'share_single_copied',
+				'Link zum Rezept wurde in die Zwischenablage kopiert:\n\n{url}'
+			);
+			alert(pattern.replace('{url}', url));
+		} catch (e) {
+			console.error('Fehler beim Erzeugen des Rezept-Freigabelinks:', e);
+			alert(msg('share_collection_error', 'Fehler beim Erzeugen des Teilungs-Links.'));
+		}
 		return;
 	}
 
