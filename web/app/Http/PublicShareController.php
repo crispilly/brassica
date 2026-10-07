@@ -8,6 +8,42 @@ use PDO;
 
 final class PublicShareController
 {
+    public static function collectionRecipe(array $params): void
+    {
+        $token = trim((string)($params['token'] ?? ''));
+        $recipeId = (int)($params['id'] ?? 0);
+
+        if ($token === '' || $recipeId <= 0) {
+            http_response_code(404);
+            echo 'Freigabe nicht gefunden.';
+            return;
+        }
+
+        $db = Database::connection();
+        $stmt = $db->prepare(
+            'SELECT 1
+             FROM collections c
+             JOIN collection_recipes cr ON cr.collection_id=c.id
+             WHERE c.token=:token AND cr.recipe_id=:rid
+             LIMIT 1'
+        );
+        $stmt->execute([
+            ':token' => $token,
+            ':rid' => $recipeId,
+        ]);
+
+        if ($stmt->fetchColumn() === false) {
+            http_response_code(404);
+            echo 'Diese Rezeptfreigabe wurde nicht gefunden.';
+            return;
+        }
+
+        $_GET['id'] = (string)$recipeId;
+        $_GET['collection_token'] = $token;
+
+        LegacyController::page('view');
+    }
+
     public static function recipe(array $params): void
     {
         $token = trim((string)($params['token'] ?? ''));
