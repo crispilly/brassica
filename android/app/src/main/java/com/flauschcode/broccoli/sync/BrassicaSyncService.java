@@ -641,7 +641,9 @@ public class BrassicaSyncService {
     }
 
     private String syncHash(Recipe recipe) throws Exception {
-        return combinedHash(contentHash(recipe), imageHash(recipe));
+        // RecipeImageService komprimiert Bilder beim lokalen Speichern. Deshalb
+        // darf der rohe Bild-Bytehash nicht Teil der Konflikterkennung sein.
+        return contentHash(recipe);
     }
 
     private String contentHash(Recipe recipe) throws Exception {
@@ -662,7 +664,8 @@ public class BrassicaSyncService {
     }
 
     private String combinedHash(String contentHash, String imageHash) {
-        return sha256Unchecked(safe(contentHash) + "|" + safe(imageHash));
+        // Kompatibler Fallback für Manifeste ohne syncHash.
+        return safe(contentHash);
     }
 
     private String sha256(byte[] value) throws Exception {
