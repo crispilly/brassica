@@ -24,8 +24,18 @@
         app:showAsAction="never" />
     <item
         android:id="@+id/action_details_share_as_file"
-        android:title="@string/share_as_file_action"
+        android:title="@string/share_as_broccoli_action"
         android:onClick="shareAsFile"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_details_save_as_broccoli"
+        android:title="@string/save_as_broccoli_action"
+        android:onClick="saveAsBroccoli"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_details_share_web_link"
+        android:title="@string/share_web_link_action"
+        android:onClick="shareWebLink"
         app:showAsAction="never" />
     <item
         android:id="@+id/action_details_edit"
