@@ -10,7 +10,7 @@ jobs:
       run:
         working-directory: android
     env:
-      BRASSICA_KEYSTORE_PATH: ${{ github.workspace }}/android/brassica-release.jks
+      BRASSICA_KEYSTORE_PATH: ${{ github.workspace }}/android/brassica-release.p12
       BRASSICA_KEYSTORE_PASSWORD: ${{ secrets.BRASSICA_KEYSTORE_PASSWORD }}
       BRASSICA_KEY_ALIAS: ${{ secrets.BRASSICA_KEY_ALIAS }}
       BRASSICA_KEY_PASSWORD: ${{ secrets.BRASSICA_KEY_PASSWORD }}
@@ -21,7 +21,7 @@ jobs:
         working-directory: .
         run: |
           set -euo pipefail
-          if grep -RIni --exclude-dir=.git --exclude='*.jks' 'digitaldruckshop' android web docs README.md CHANGELOG.md 2>/dev/null; then
+          if grep -RIni --exclude-dir=.git --exclude='*.jks' --exclude='*.p12' 'digitaldruckshop' android web docs README.md CHANGELOG.md 2>/dev/null; then
             echo "Forbidden branding found."
             exit 1
           fi
