@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.3 — 2026-10-07
+
+### Sync
+- Download-Hash wird vor dem lokalen Speichern geprüft; ein fehlerhafter Datensatz wird nicht mehr erst importiert und danach als Fehler gemeldet.
+- Serializer-unabhängiger Sync-Hash v3 mit UTF-8-Byte-Längen statt JSON-Bytevergleich.
+- Sonderzeichen, Unicode und Steuerzeichen führen dadurch nicht mehr zu unterschiedlichen Hashes zwischen PHP und Android.
+- Kategoriematching in Android von `LIKE` auf exakten Vergleich umgestellt.
+
+
 ## 2.0.2 — 2026-10-07
 
 ### Sync
