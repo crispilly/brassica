@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Brassica 2.0 – Recipe management for Web and Android</title>
+<meta name="description" content="Brassica 2.0 manages Broccoli recipes on the Web and Android, with import/export, cooking mode, multi-category filtering and optional sync.">
+<link rel="icon" href="/assets/brassica.png">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<main class="wrap">
+<a class="lang" href="/">Deutsch</a>
+<header class="hero">
+<img src="/assets/brassica.png" alt="Brassica logo">
+<div>
+<div class="eyebrow">Open Source · GPLv3</div>
+<h1>Brassica 2.0</h1>
+<p>Brassica is a free recipe manager for Web and Android. The Web application provides comfortable browser-based recipe management, while the Android app keeps a full local database and can optionally synchronize with Brassica Web.</p>
+<div class="buttons">
+<a class="button" href="https://github.com/crispilly/brassica/releases/latest">Downloads</a>
+<a class="button secondary" href="https://github.com/crispilly/brassica">Source on GitHub</a>
+<a class="button secondary" href="https://brassicademo.crispilly.de/">Web demo</a>
+</div>
+</div>
+</header>
+
+<section>
+<h2>What's new in version 2?</h2>
+<div class="grid">
+<div class="feature"><h3>Brassica Web 2.0</h3><p>New routing and front controller, private runtime data outside the public web root, browser-based first setup, cooking mode, multi-category OR/AND filtering and a sync API for the Android app.</p></div>
+<div class="feature"><h3>Brassica Android 2.0</h3><p>A dedicated fork of the free Broccoli app with a local database, multi-category filtering, direct import/export of <code>.broccoli</code> and <code>.broccoli-archive</code>, and selective synchronization with Brassica Web.</p></div>
+</div>
+</section>
+
+<section>
+<h2>Brassica Web</h2>
+<ul>
+<li>multi-category filtering with OR or AND</li>
+<li>cooking mode with large paged instructions and Screen Wake Lock</li>
+<li>import/export of <code>.broccoli</code> and <code>.broccoli-archive</code></li>
+<li>multi-user support, collections and public share links</li>
+<li>sync API for Brassica Android</li>
+<li>SQLite database and runtime files outside the public web root</li>
+</ul>
+<p class="note"><strong>Installation:</strong> unpack the Web release, point the DocumentRoot to <code>public/</code>, and open Brassica in a browser. The database and first administrator are created through the browser. No shell setup is required.</p>
+</section>
+
+<section>
+<h2>Brassica Android</h2>
+<p>The Android app remains offline-first. Your recipes stay in a local Room database; a Brassica Web server is optional and only required for synchronization.</p>
+<ul>
+<li>existing cooking assistant with screen kept awake</li>
+<li>multi-category OR/AND filtering</li>
+<li>direct import of <code>.broccoli</code> and <code>.broccoli-archive</code></li>
+<li>JPG/JPEG/PNG/WebP image import</li>
+<li>single-recipe and multi-recipe export</li>
+<li>server and user settings</li>
+<li>sync preview with recipe/category selection</li>
+<li>explicit conflict direction instead of silent overwrites</li>
+</ul>
+<p><a class="button" href="https://github.com/crispilly/brassica/releases/latest">Download Android APK</a></p>
+</section>
+
+<section id="migration">
+<h2>Migrating Brassica 1.x to 2.x</h2>
+<p>The Brassica 1.0–1.2 database structure is compatible with V2. Brassica 2.x includes automatic browser-based migration.</p>
+<ol class="steps">
+<li>Back up the complete V1 installation.</li>
+<li>Unpack Brassica Web 2.x into a new empty directory.</li>
+<li>Copy only the old <code>data/</code> directory into the root of the new V2 Web installation.</li>
+<li>Point the DocumentRoot to the new <code>public/</code> directory.</li>
+<li>Open Brassica in the browser.</li>
+</ol>
+<p>On first start Brassica copies the database, recipe images and stored import archives into the new private <code>storage/</code> layout. The V1 source data is not deleted.</p>
+<p><a href="https://github.com/crispilly/brassica/blob/main/docs/MIGRATION_V1_TO_V2.md">Detailed migration guide</a></p>
+</section>
+
+<section>
+<h2>Broccoli file formats</h2>
+<p>Brassica supports the established Broccoli exchange formats: <code>.broccoli</code> for a single recipe and <code>.broccoli-archive</code> for collections of recipes.</p>
+</section>
+
+<section>
+<h2>Downloads and source</h2>
+<div class="buttons">
+<a class="button" href="https://github.com/crispilly/brassica/releases/latest">Latest release</a>
+<a class="button secondary" href="https://github.com/crispilly/brassica">GitHub repository</a>
+</div>
+</section>
+
+<footer>Brassica is free software under GNU GPLv3. Brassica Android is based on the open-source Broccoli project.</footer>
+</main>
+</body>
+</html>
