@@ -1227,4 +1227,13 @@
     <string name="export_failed">Export failed.</string>
 
     <string name="sync_title">Brassica Sync</string><string name="sync_server">Server</string><string name="sync_user">User</string><string name="sync_password">Password</string><string name="sync_load_preview">Load sync preview</string><string name="sync_select_categories">Select by categories</string><string name="sync_selected">Sync selected</string><string name="sync_loading">Comparing…</string><string name="sync_running">Synchronizing…</string><string name="sync_all_current">Everything is up to date.</string><string name="sync_preview_ready">Select recipes to synchronize.</string><string name="sync_conflict_question">This recipe was changed on both sides. Which version should win?</string><string name="sync_server_to_app">Server → App</string><string name="sync_app_to_server">App → Server</string><string name="sync_failed">Synchronization failed.</string><string name="sync_done">%1$d recipe(s) synchronized.</string>
+    <string name="sync_password_pairing">Password (only required for first connection)</string>
+    <string name="sync_password_hint">Not stored after the sync key has been created</string>
+    <string name="sync_key_ready">Sync key is configured. The password is no longer required.</string>
+    <string name="sync_key_not_ready">No sync key yet. Enter your password once to create a device key.</string>
+    <string name="sync_progress_start">Starting synchronization of %1$d recipe(s)…</string>
+    <string name="sync_progress">%1$d of %2$d synchronized: %3$s</string>
+    <string name="sync_done_title">Synchronization complete</string>
+    <string name="sync_conflict_label">Conflict</string>
+    <string name="sync_nothing_selected">No recipe selected for synchronization.</string>
 </resources>
