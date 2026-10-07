@@ -4,19 +4,35 @@
 require_once __DIR__ . '/session_bootstrap_page.php';
 require_once __DIR__ . '/../i18n.php';
 require_once __DIR__ . '/../api/db.php';
+require_once __DIR__ . '/../lib/share_access.php';
 
 $logged_in = isset($_SESSION['user_id']) && (int)$_SESSION['user_id'] > 0;
 $userId = $logged_in ? (int)$_SESSION['user_id'] : null;
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$shareToken = isset($_GET['share_token']) ? trim((string)$_GET['share_token']) : '';
+$collectionToken = isset($_GET['collection_token']) ? trim((string)$_GET['collection_token']) : '';
+
+$db = get_db();
+$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+if (!brassica_user_can_access_recipe($db, $id, $userId, $shareToken, $collectionToken)) {
+    http_response_code(404);
+    echo '<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rezept nicht gefunden</title></head><body><main><h1>Rezept nicht gefunden</h1><p>Dieses Rezept ist nicht öffentlich freigegeben oder der Freigabe-Link ist ungültig.</p></main></body></html>';
+    exit;
+}
 
 // Basis-URL bestimmen
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$shareToken = isset($_GET['share_token']) ? trim((string)$_GET['share_token']) : '';
-$canonicalUrl = $shareToken !== ''
-    ? $scheme . '://' . $host . '/share/recipe/' . rawurlencode($shareToken)
-    : $scheme . '://' . $host . '/view.php?id=' . $id;
 $baseUrl = $scheme . '://' . $host;
+
+if ($shareToken !== '') {
+    $canonicalUrl = $baseUrl . '/share/recipe/' . rawurlencode($shareToken);
+} elseif ($collectionToken !== '') {
+    $canonicalUrl = $baseUrl . '/share/' . rawurlencode($collectionToken) . '/recipe/' . $id;
+} else {
+    $canonicalUrl = $baseUrl . '/recipes/' . $id;
+}
 
 function broccoliTimeToIso8601(?string $time): ?string {
 	$time = trim((string)$time);
@@ -52,9 +68,6 @@ $jsonLd = null;
 
 if ($id > 0) {
 	try {
-		$db = get_db();
-		$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
 		$stmt = $db->prepare('SELECT * FROM recipes WHERE id = :id LIMIT 1');
 		$stmt->bindValue(':id', $id, PDO::PARAM_INT);
 		$stmt->execute();
@@ -255,8 +268,8 @@ $currentParams      = $_GET;
         </header>
         <main class="app-main view-main">
          	<div class="view-actions">
-			<button type="button" onclick="window.location.href='/recipes/<?php echo (int)$id; ?>/cook'">Kochmodus</button>
          		<?php if ($logged_in): ?>
+			<button type="button" onclick="window.location.href='/recipes/<?php echo (int)$id; ?>/cook'">Kochmodus</button>
          			<button type="button" onclick="goBack()">
         				<?php echo htmlspecialchars(t('view.back_button', 'Zurück'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); ?>
         			</button>
@@ -313,6 +326,9 @@ $currentParams      = $_GET;
         
         <script>
         	const RECIPE_ID = <?php echo json_encode($id, JSON_UNESCAPED_UNICODE); ?>;
+        	const SHARE_TOKEN = <?php echo json_encode($shareToken, JSON_UNESCAPED_UNICODE); ?>;
+        	const COLLECTION_TOKEN = <?php echo json_encode($collectionToken, JSON_UNESCAPED_UNICODE); ?>;
+        	const PUBLIC_SHARE_URL = <?php echo json_encode(($shareToken !== '' || $collectionToken !== '') ? $canonicalUrl : '', JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
         
         	window.viewMessages = {
         		import_invalid_id: <?php echo json_encode(t('view.import_invalid_id', 'Ungültige Rezept-ID.'), JSON_UNESCAPED_UNICODE); ?>,
@@ -359,8 +375,39 @@ $currentParams      = $_GET;
          		window.importRecipeToMe && window.importRecipeToMe(RECIPE_ID);
          	}
         
-        	function copyLink() {
-        		const url = window.location.href;
+        	async function copyLink() {
+        		let url = PUBLIC_SHARE_URL;
+
+        		if (!url) {
+        			try {
+        				const res = await fetch('/api/recipe_share.php', {
+        					method: 'POST',
+        					headers: {
+        						'Content-Type': 'application/json',
+        						'Accept': 'application/json'
+        					},
+        					body: JSON.stringify({ id: RECIPE_ID })
+        				});
+
+        				if (!res.ok) {
+        					throw new Error('HTTP ' + res.status);
+        				}
+
+        				const data = await res.json();
+        				url = data && data.url ? data.url : '';
+        				if (!url) {
+        					throw new Error('Kein Freigabe-Link erhalten.');
+        				}
+        				if (!/^https?:\/\//i.test(url)) {
+        					url = window.location.origin + (url.startsWith('/') ? url : '/' + url);
+        				}
+        			} catch (e) {
+        				console.error(e);
+        				alert(vmsg('copy_error', 'Fehler beim Erzeugen des Freigabe-Links'));
+        				return;
+        			}
+        		}
+
         		navigator.clipboard.writeText(url)
         			.then(() => {
         				alert(vmsg('copy_success', 'Link kopiert'));
