@@ -56,3 +56,9 @@ Dieses Repository steht unter GPLv3. Der Android-Teil basiert auf Broccoli und b
 ## Web-Erstinstallation
 
 Brassica Web 2.0 benötigt keine Shell-Installation. Nach dem Entpacken und Setzen des DocumentRoot auf `web/public/` wird die SQLite-Datenbank beim ersten Browseraufruf automatisch angelegt und `/setup` führt durch das Anlegen des ersten Administrators.
+
+## Upgrade von Brassica 1.x
+
+Für Brassica Web 1.0–1.2 gibt es eine automatische, shellfreie Migration beim ersten Start von V2. Datenbank, Bilder und gespeicherte Importarchive werden aus dem alten `data/`-Ordner in den neuen privaten `storage/`-Bereich kopiert.
+
+Anleitung: [Migration 1.x → 2.x](docs/MIGRATION_V1_TO_V2.md)
