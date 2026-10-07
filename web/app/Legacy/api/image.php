@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/session_bootstrap.php';
+require_once __DIR__ . '/../lib/share_access.php';
 
 try {
 	if (!isset($_GET['id'])) {
@@ -19,6 +20,16 @@ try {
 	}
 
 	$db = get_db();
+	$currentUserId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+	$shareToken = isset($_GET['share_token']) ? trim((string)$_GET['share_token']) : '';
+	$collectionToken = isset($_GET['collection_token']) ? trim((string)$_GET['collection_token']) : '';
+
+	if (!brassica_user_can_access_recipe($db, $id, $currentUserId, $shareToken, $collectionToken)) {
+		http_response_code(404);
+		echo 'Bild nicht gefunden.';
+		exit;
+	}
+
 	$stmt = $db->prepare(
 		'SELECT image_path
 		 FROM recipes
