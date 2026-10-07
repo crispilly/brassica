@@ -20,11 +20,51 @@ jobs:
         with:
           php-version: '8.4'
           extensions: pdo_sqlite
+
       - name: PHP syntax check
         run: find web -type f -name '*.php' -print0 | xargs -0 -n1 php -l
+
       - name: Browser-installer database smoke test
         run: |
+          set -euo pipefail
           rm -f web/storage/database/brassica.sqlite
           php -r "require 'web/app/bootstrap.php'; Brassica\\Core\\Installer::ensureReady(); if (!is_file(storage_path('database/brassica.sqlite'))) { exit(1); } if (!Brassica\\Core\\Installer::needsSetup()) { exit(2); }"
           test -s web/storage/database/brassica.sqlite
           rm -f web/storage/database/brassica.sqlite
+
+      - name: Brassica 1.x migration smoke test
+        run: |
+          set -euo pipefail
+          rm -rf web/data
+          rm -f web/storage/database/brassica.sqlite web/storage/logs/v1-migration.json
+          find web/storage/images -type f ! -name '.gitkeep' -delete
+          find web/storage/imports/archives -type f ! -name '.gitkeep' -delete
+
+          mkdir -p web/data/images web/data/uploads/archives
+
+          php -r '
+            $pdo = new PDO("sqlite:web/data/db.sqlite");
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $pdo->exec(file_get_contents("web/database/schema.sql"));
+            $pdo->exec("INSERT INTO users (username,password_hash,created_at) VALUES (\"legacy-admin\",\"hash\",\"2026-01-01T00:00:00+00:00\")");
+          '
+
+          printf 'legacy-image' > web/data/images/legacy.jpg
+          printf 'legacy-archive' > web/data/uploads/archives/legacy.broccoli
+
+          php -r '
+            require "web/app/bootstrap.php";
+            Brassica\Core\Installer::ensureReady();
+            if (!is_file(storage_path("database/brassica.sqlite"))) exit(10);
+            if (Brassica\Core\Installer::needsSetup()) exit(11);
+            if (!is_file(storage_path("images/legacy.jpg"))) exit(12);
+            if (!is_file(storage_path("imports/archives/legacy.broccoli"))) exit(13);
+            if (!is_file(storage_path("logs/v1-migration.json"))) exit(14);
+            $pdo = Brassica\Core\Database::connection();
+            if ((int)$pdo->query("SELECT COUNT(*) FROM users")->fetchColumn() !== 1) exit(15);
+          '
+
+          rm -rf web/data
+          rm -f web/storage/database/brassica.sqlite web/storage/logs/v1-migration.json
+          find web/storage/images -type f ! -name '.gitkeep' -delete
+          find web/storage/imports/archives -type f ! -name '.gitkeep' -delete
