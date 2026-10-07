@@ -154,7 +154,7 @@ try {
 			'id'         => (int)$row['id'],
 			'title'      => $row['title'],
 			'image_url'  => $row['image_path']
-				? ('../api/image.php?id=' . (int)$row['id'] . '&collection_token=' . rawurlencode($token))
+				? ('/api/image.php?id=' . (int)$row['id'] . '&collection_token=' . rawurlencode($token))
 				: null,
 			'categories' => $cats,
 			'owner_id'   => $ownerId,
