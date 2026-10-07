@@ -8,9 +8,8 @@ Für die Änderungserkennung verwendet Brassica 2.0.2 einen gemeinsamen Sync-Has
 
 - kanonischem Rezeptinhalt,
 - sortierten Kategorien,
-- Bildinhalt.
 
-Leere Textfelder werden auf beiden Seiten identisch als leere Strings behandelt.
+Leere Textfelder werden auf beiden Seiten identisch als leere Strings behandelt. Der rohe Bild-Bytehash wird bewusst nicht für Konflikte verwendet, weil Android Bilder beim lokalen Speichern komprimiert.
 
 ## Authentifizierung
 
