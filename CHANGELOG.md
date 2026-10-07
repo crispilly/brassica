@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.4 — 2026-10-07
+
+### Teilen
+- Rezept kann über den Android-Dateidialog direkt als `.broccoli` gespeichert werden.
+- Bestehendes Teilen als `.broccoli` bleibt erhalten.
+- Neuer Android-Menüpunkt „Web-Link teilen“.
+- Beim Web-Link wird der aktuelle lokale Rezeptstand auf den konfigurierten Brassica-Webserver übertragen.
+- Pro Rezept wird eine dauerhafte öffentliche Freigabe-URL erzeugt und bei erneutem Teilen wiederverwendet.
+- Serveränderungen seit dem letzten Sync werden beim Freigeben nicht still überschrieben; in diesem Fall ist zuerst ein normaler Sync erforderlich.
+- Neuer Web-Endpunkt `POST /api/v1/share/recipe` und öffentliche Route `/share/recipe/{token}`.
+
+
 ## 2.0.3 — 2026-10-07
 
 ### Sync
