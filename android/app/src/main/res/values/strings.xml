@@ -1236,4 +1236,10 @@
     <string name="sync_done_title">Synchronization complete</string>
     <string name="sync_conflict_label">Conflict</string>
     <string name="sync_nothing_selected">No recipe selected for synchronization.</string>
+    <string name="share_as_broccoli_action">Share as .broccoli</string>
+    <string name="save_as_broccoli_action">Save as .broccoli</string>
+    <string name="share_web_link_action">Share Web link</string>
+    <string name="share_web_link_creating">Creating Web link…</string>
+    <string name="share_web_link_failed">The Web link could not be created.</string>
+    <string name="recipe_saved_as_broccoli_message">Recipe saved as .broccoli.</string>
 </resources>
