@@ -1,6 +1,6 @@
 // public/view.js
 
-const API_BASE = '../api';
+const API_BASE = '/api';
 
 document.addEventListener('DOMContentLoaded', () => {
 	if (!RECIPE_ID || RECIPE_ID <= 0) {
@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 async function loadRecipe(id) {
 	try {
-		const res = await fetch(`${API_BASE}/recipe_get.php?id=${id}`);
+		const res = await fetch(`${API_BASE}/recipe_get.php?id=${id}${shareAccessQuery()}`);
 		if (!res.ok) {
 			throw new Error(`HTTP ${res.status}`);
 		}
@@ -159,19 +159,19 @@ function setSection(elementId, title, content) {
 /* Zurück zur Übersicht */
 
 function goBack() {
-	window.location.href = 'index.php';
+	window.location.href = '/index.php';
 }
 
 
 /* Weiter zum Editor */
 function openEditor() {
-	window.location.href = `editor.php?id=${RECIPE_ID}`;
+	window.location.href = `/editor.php?id=${RECIPE_ID}`;
 }
 
 /* Als Broccoli-Datei herunterladen */
 
 function downloadBroccoli() {
-	window.location.href = `editor.php?id=${RECIPE_ID}&download=1`;
+	window.location.href = `/editor.php?id=${RECIPE_ID}&download=1${shareAccessQuery()}`;
 }
 
 /* Rezept in eigene Rezepte übernehmen */
@@ -184,7 +184,11 @@ async function importRecipeToMe(id) {
 				'Content-Type': 'application/json',
 				'Accept': 'application/json',
 			},
-			body: JSON.stringify({ id })
+			body: JSON.stringify({
+				id,
+				share_token: typeof SHARE_TOKEN === 'string' ? SHARE_TOKEN : '',
+				collection_token: typeof COLLECTION_TOKEN === 'string' ? COLLECTION_TOKEN : ''
+			})
 		});
 
 		if (res.status === 401) {
@@ -231,4 +235,19 @@ function escapeHtml(str) {
 
 function escapeUrl(str) {
 	return String(str).replace(/"/g, '%22');
+}
+
+
+function shareAccessQuery() {
+	const params = new URLSearchParams();
+
+	if (typeof SHARE_TOKEN === 'string' && SHARE_TOKEN) {
+		params.set('share_token', SHARE_TOKEN);
+	}
+	if (typeof COLLECTION_TOKEN === 'string' && COLLECTION_TOKEN) {
+		params.set('collection_token', COLLECTION_TOKEN);
+	}
+
+	const query = params.toString();
+	return query ? '&' + query : '';
 }
