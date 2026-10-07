@@ -1,0 +1,110 @@
+name: Publish Brassica 2.0.1 release
+
+on:
+  push:
+    paths:
+      - '.github/workflows/release-2.0.1.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare Android SDK
+        run: |
+          set -euo pipefail
+          SDKMANAGER=/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
+
+      - name: Build Android APK
+        working-directory: android
+        run: ./gradlew assembleFdroidDebug
+
+      - name: Prepare release assets
+        run: |
+          set -euo pipefail
+          mkdir -p release/Brassica-Web-2.0.1
+          cp -a web/. release/Brassica-Web-2.0.1/
+          rm -f release/Brassica-Web-2.0.1/storage/database/brassica.sqlite
+          find release/Brassica-Web-2.0.1/storage -type f ! -name '.gitkeep' -delete
+
+          mkdir -p release/Brassica-Website-2.0.1
+          cp -a website/. release/Brassica-Website-2.0.1/
+
+          (
+            cd release
+            zip -qr Brassica-Web-2.0.1.zip Brassica-Web-2.0.1
+            zip -qr Brassica-Website-2.0.1.zip Brassica-Website-2.0.1
+          )
+
+          cp android/app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk release/Brassica-Android-2.0.1.apk
+
+          (
+            cd release
+            sha256sum Brassica-Web-2.0.1.zip Brassica-Android-2.0.1.apk Brassica-Website-2.0.1.zip > SHA256SUMS.txt
+          )
+
+          cat > release/RELEASE_NOTES.md <<'EOF'
+          # Brassica 2.0.1
+
+          Wartungsupdate für Brassica 2 mit automatischer Migration von Brassica Web 1.x.
+
+          ## Web
+
+          - automatische Migration von Brassica 1.0–1.2 beim ersten Browserstart
+          - keine Shell für die Migration erforderlich
+          - alte SQLite-Datenbank wird vor der Übernahme geprüft
+          - Datenbank, Rezeptbilder und gespeicherte Importarchive werden in die neue private `storage/`-Struktur kopiert
+          - V1-Quelldaten werden nicht gelöscht
+          - keine Änderung des fachlichen Datenbankschemas
+
+          ## Android
+
+          - Brassica Android 2.0.1
+          - Application-ID `de.crispilly.brassica`
+          - Brassica-Logo identisch zur Webversion
+          - Multikategorie-Filter ODER/UND
+          - Import/Export von `.broccoli` und `.broccoli-archive`
+          - selektiver Web-Sync mit Vorschau
+
+          ## Informationsseite
+
+          Das Asset `Brassica-Website-2.0.1.zip` enthält die aktualisierten deutschen und englischen Texte für die öffentliche Brassica-Infoseite mit Web 2, Android 2, Downloads und Migration.
+
+          ## Migration von Brassica Web 1.x
+
+          1. V1 vollständig sichern.
+          2. Brassica Web 2.0.1 in ein neues leeres Verzeichnis entpacken.
+          3. Nur den alten Ordner `data/` in den Root der neuen V2-Webinstallation kopieren.
+          4. DocumentRoot auf `public/` setzen.
+          5. Brassica im Browser öffnen.
+
+          V2 übernimmt die Daten beim ersten Aufruf automatisch. Details stehen in `docs/MIGRATION_V1_TO_V2.md`.
+
+          ## Signatur der Android-APK
+
+          Die bereitgestellte APK ist die F-Droid-Debug-Variante und mit dem Android-Debugschlüssel signiert. Für dauerhaft updatefähige produktive Installationen ist später ein eigener stabiler Release-Signing-Key sinnvoll.
+          EOF
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create v2.0.1 \
+            --target "${GITHUB_SHA}" \
+            --title "Brassica 2.0.1" \
+            --notes-file release/RELEASE_NOTES.md \
+            release/Brassica-Web-2.0.1.zip \
+            release/Brassica-Android-2.0.1.apk \
+            release/Brassica-Website-2.0.1.zip \
+            release/SHA256SUMS.txt
