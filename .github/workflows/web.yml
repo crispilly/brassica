@@ -24,6 +24,12 @@ jobs:
       - name: PHP syntax check
         run: find web -type f -name '*.php' -print0 | xargs -0 -n1 php -l
 
+      - name: Visible Web version matches VERSION file
+        run: |
+          set -euo pipefail
+          VERSION=$(tr -d '\r\n' < web/VERSION)
+          grep -F "content: \"Brassica $VERSION\";" web/public/assets/css/app.css
+
       - name: Browser-installer database smoke test
         run: |
           set -euo pipefail
