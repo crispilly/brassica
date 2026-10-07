@@ -110,6 +110,86 @@ public class BrassicaSyncService {
         return tokenFor(server, user) != null;
     }
 
+    public CompletableFuture<String> shareWebLink(Recipe recipe) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                String server = getServer();
+                String user = getUser();
+
+                if (server == null || server.trim().isEmpty() || user == null || user.trim().isEmpty()) {
+                    throw new IOException("Bitte zuerst die Brassica-Synchronisierung einrichten.");
+                }
+
+                String token = tokenFor(server, user);
+                if (token == null || token.isEmpty()) {
+                    throw new IOException("Bitte zuerst einmal synchronisieren, damit der Geräte-Key eingerichtet wird.");
+                }
+
+                String uuid = uuidFor(recipe.getRecipeId());
+                String localHash = syncHash(recipe);
+
+                SyncItem item = new SyncItem();
+                item.uuid = uuid;
+                item.title = recipe.getTitle();
+                item.localRecipe = recipe;
+                item.localHash = localHash;
+                item.categories = categoryNames(recipe);
+
+                Map<String, Object> body = new LinkedHashMap<>();
+                body.put("recipe", uploadPayload(item));
+
+                String base = baseHash(uuid);
+                if (base != null && !base.isEmpty()) {
+                    body.put("baseHash", base);
+                }
+
+                byte[] response;
+                try {
+                    response = requestJson(
+                            "POST",
+                            normalizeServer(server) + "/api/v1/share/recipe",
+                            "Bearer " + token,
+                            mapper.writeValueAsBytes(body)
+                    );
+                } catch (IOException e) {
+                    if (isUnauthorized(e)) {
+                        clearToken(server, user);
+                        throw new IOException("Der Sync-Key ist ungültig oder wurde widerrufen. Bitte zuerst erneut synchronisieren.");
+                    }
+                    throw e;
+                }
+
+                Map<String, Object> root = mapper.readValue(
+                        response,
+                        new TypeReference<Map<String, Object>>() {}
+                );
+
+                String serverHash = nullableString(root.get("syncHash"));
+                if (serverHash == null || !localHash.equals(serverHash)) {
+                    throw new IOException("Der Webserver hat nach der Freigabe einen abweichenden Rezeptstand gemeldet.");
+                }
+
+                String shareUrl = nullableString(root.get("url"));
+                if (shareUrl == null || shareUrl.isEmpty()) {
+                    throw new IOException("Der Webserver hat keinen Freigabe-Link geliefert.");
+                }
+
+                saveBaseHash(uuid, serverHash);
+
+                if (!shareUrl.matches("^https?://.*")) {
+                    if (!shareUrl.startsWith("/")) {
+                        shareUrl = "/" + shareUrl;
+                    }
+                    shareUrl = normalizeServer(server) + shareUrl;
+                }
+
+                return shareUrl;
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
+        });
+    }
+
     public CompletableFuture<List<SyncItem>> preview(String server, String user, String password) {
         return CompletableFuture.supplyAsync(() -> {
             try {
