@@ -989,4 +989,13 @@
     <string name="export_failed">Export fehlgeschlagen.</string>
 
     <string name="sync_title">Brassica Sync</string><string name="sync_server">Server</string><string name="sync_user">Benutzer</string><string name="sync_password">Passwort</string><string name="sync_load_preview">Syncvorschau laden</string><string name="sync_select_categories">Nach Kategorien auswählen</string><string name="sync_selected">Ausgewählte synchronisieren</string><string name="sync_loading">Vergleiche Daten…</string><string name="sync_running">Synchronisiere…</string><string name="sync_all_current">Alles ist aktuell.</string><string name="sync_preview_ready">Rezepte für die Synchronisation auswählen.</string><string name="sync_conflict_question">Dieses Rezept wurde auf beiden Seiten geändert. Welche Version soll übernommen werden?</string><string name="sync_server_to_app">Server → App</string><string name="sync_app_to_server">App → Server</string><string name="sync_failed">Synchronisation fehlgeschlagen.</string><string name="sync_done">%1$d Rezept(e) synchronisiert.</string>
+    <string name="sync_password_pairing">Passwort (nur für die erste Verbindung)</string>
+    <string name="sync_password_hint">Wird nach Erzeugung des Sync-Keys nicht gespeichert</string>
+    <string name="sync_key_ready">Sync-Key ist eingerichtet. Das Passwort wird nicht mehr benötigt.</string>
+    <string name="sync_key_not_ready">Noch kein Sync-Key. Passwort einmalig eingeben, um einen Geräte-Key zu erzeugen.</string>
+    <string name="sync_progress_start">Synchronisierung von %1$d Rezept(en) wird gestartet…</string>
+    <string name="sync_progress">%1$d von %2$d synchronisiert: %3$s</string>
+    <string name="sync_done_title">Synchronisierung abgeschlossen</string>
+    <string name="sync_conflict_label">Konflikt</string>
+    <string name="sync_nothing_selected">Kein Rezept für die Synchronisierung ausgewählt.</string>
 </resources>
