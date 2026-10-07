@@ -523,7 +523,11 @@ final class SyncController
 
     private static function syncHash(string $contentHash, ?string $imageHash): string
     {
-        return hash('sha256', $contentHash . '|' . ($imageHash ?? ''));
+        // Broccoli/Brassica Android komprimiert Bilder beim lokalen Speichern.
+        // Ein Byte-Hash des Bildes wäre deshalb nach einem Download absichtlich
+        // verschieden. Für die Konflikterkennung ist der kanonische Rezeptinhalt
+        // maßgeblich; imageHash bleibt als Manifest-Metadatum verfügbar.
+        return $contentHash;
     }
 
     private static function rowToData(array $r): array
