@@ -24,9 +24,20 @@ require_once __DIR__ . '/../lib/share_access.php';
 $db = get_db();
 
 function send_broccoli_download(array $data, string $title, ?string $imagePathRel): void {
-	// imageName ggf. aus Pfad setzen
+	$imageFullPath = null;
+	$imageBasename = null;
+
 	if ($imagePathRel) {
-		$data['imageName'] = basename($imagePathRel);
+		$resolved = legacy_image_file($imagePathRel);
+		if (is_file($resolved)) {
+			$imageFullPath = $resolved;
+			$imageBasename = basename($resolved);
+			$data['imageName'] = $imageBasename;
+		} else {
+			unset($data['imageName']);
+		}
+	} else {
+		unset($data['imageName']);
 	}
 
 	$json = json_encode($data, JSON_UNESCAPED_UNICODE);
@@ -52,12 +63,8 @@ function send_broccoli_download(array $data, string $title, ?string $imagePathRe
 	$jsonName = $baseName . '.json';
 	$zip->addFromString($jsonName, $json);
 
-	// Bild hinzufügen, falls vorhanden
-	if ($imagePathRel) {
-		$fullPath = realpath(__DIR__ . '/../' . ltrim($imagePathRel, '/'));
-		if ($fullPath !== false && is_file($fullPath)) {
-			$zip->addFile($fullPath, basename($imagePathRel));
-		}
+	if ($imageFullPath !== null && $imageBasename !== null) {
+		$zip->addFile($imageFullPath, $imageBasename);
 	}
 
 	$zip->close();
@@ -173,8 +180,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
  
  	// Bild löschen, falls gewünscht
  	if ($deleteImage && $newImagePath) {
- 		$fullPath = realpath(__DIR__ . '/../' . ltrim($newImagePath, '/'));
- 		if ($fullPath !== false && is_file($fullPath)) {
+ 		$fullPath = legacy_image_file((string)$newImagePath);
+ 		if (is_file($fullPath)) {
  			@unlink($fullPath);
  		}
  		$newImagePath = null;
