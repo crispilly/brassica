@@ -168,6 +168,87 @@ final class SyncController
         });
     }
 
+    public static function shareRecipe(): void
+    {
+        self::json(function (PDO $db, int $userId): array {
+            self::ensureShareTable($db);
+
+            $input = json_decode((string)file_get_contents('php://input'), true);
+            $item = is_array($input['recipe'] ?? null) ? $input['recipe'] : null;
+            $baseHash = trim((string)($input['baseHash'] ?? ''));
+
+            if (!is_array($item)) {
+                throw new RuntimeException('Rezeptdaten fehlen.');
+            }
+
+            $uuid = trim((string)($item['uuid'] ?? ''));
+            if ($uuid === '') {
+                throw new RuntimeException('Rezept-UUID fehlt.');
+            }
+
+            // Nicht still eine zwischenzeitlich auf dem Server geänderte
+            // Version überschreiben. In diesem Fall soll zuerst normal
+            // synchronisiert werden.
+            $stmt = $db->prepare('SELECT * FROM recipes WHERE owner_id=:uid AND uuid=:uuid LIMIT 1');
+            $stmt->execute([':uid' => $userId, ':uuid' => $uuid]);
+            $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($existing && $baseHash !== '') {
+                $serverCats = self::categories($db, (int)$existing['id']);
+                $serverContentHash = self::contentHash($existing, $serverCats);
+                $serverSyncHash = self::syncHash(
+                    $serverContentHash,
+                    self::imageHash($existing['image_path'] ?? null)
+                );
+
+                if (!hash_equals($baseHash, $serverSyncHash)) {
+                    http_response_code(409);
+                    throw new RuntimeException(
+                        'Das Rezept wurde auf dem Server seit dem letzten Sync geändert. Bitte zuerst synchronisieren.'
+                    );
+                }
+            }
+
+            $result = self::upsert($db, $userId, $item);
+            $recipeId = (int)$result['recipeId'];
+
+            $stmt = $db->prepare(
+                'SELECT token FROM recipe_shares WHERE owner_id=:uid AND recipe_id=:rid LIMIT 1'
+            );
+            $stmt->execute([':uid' => $userId, ':rid' => $recipeId]);
+            $token = $stmt->fetchColumn();
+
+            if ($token === false) {
+                $token = bin2hex(random_bytes(24));
+                $now = (new \DateTimeImmutable())->format(DATE_ATOM);
+                $db->prepare(
+                    'INSERT INTO recipe_shares(owner_id,recipe_id,token,created_at,updated_at)
+                     VALUES(:uid,:rid,:token,:created,:updated)'
+                )->execute([
+                    ':uid' => $userId,
+                    ':rid' => $recipeId,
+                    ':token' => $token,
+                    ':created' => $now,
+                    ':updated' => $now,
+                ]);
+            } else {
+                $db->prepare(
+                    'UPDATE recipe_shares SET updated_at=:updated WHERE owner_id=:uid AND recipe_id=:rid'
+                )->execute([
+                    ':updated' => (new \DateTimeImmutable())->format(DATE_ATOM),
+                    ':uid' => $userId,
+                    ':rid' => $recipeId,
+                ]);
+            }
+
+            return [
+                'uuid' => $result['uuid'],
+                'syncHash' => $result['syncHash'],
+                'url' => '/share/recipe/' . rawurlencode((string)$token),
+            ];
+        });
+    }
+
     public static function apply(): void
     {
         self::json(function (PDO $db, int $userId): array {
@@ -313,6 +394,7 @@ final class SyncController
             ->execute([':h' => $contentHash, ':id' => $id]);
 
         return [
+            'recipeId' => $id,
             'uuid' => $uuid,
             'contentHash' => $contentHash,
             'imageHash' => $imageHash,
@@ -447,6 +529,22 @@ final class SyncController
             )'
         );
         $db->exec('CREATE INDEX IF NOT EXISTS idx_sync_tokens_user_id ON sync_tokens(user_id)');
+    }
+
+    private static function ensureShareTable(PDO $db): void
+    {
+        $db->exec(
+            'CREATE TABLE IF NOT EXISTS recipe_shares (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner_id INTEGER NOT NULL,
+                recipe_id INTEGER NOT NULL UNIQUE,
+                token TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )'
+        );
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_recipe_shares_owner_id ON recipe_shares(owner_id)');
+        $db->exec('CREATE INDEX IF NOT EXISTS idx_recipe_shares_token ON recipe_shares(token)');
     }
 
     private static function ensureIdentity(PDO $db, array $row): array
