@@ -76,3 +76,17 @@ CREATE INDEX idx_recipes_owner_hash
     ON recipes (owner_id, content_hash);
 
 CREATE INDEX idx_recipes_user_id ON recipes(user_id);
+
+
+CREATE TABLE sync_tokens (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL,
+    device_id    TEXT NOT NULL,
+    device_name  TEXT,
+    token_hash   TEXT NOT NULL UNIQUE,
+    created_at   TEXT NOT NULL,
+    last_used_at TEXT,
+    UNIQUE (user_id, device_id)
+);
+
+CREATE INDEX idx_sync_tokens_user_id ON sync_tokens(user_id);
