@@ -68,3 +68,54 @@ jobs:
           rm -f web/storage/database/brassica.sqlite web/storage/logs/v1-migration.json
           find web/storage/images -type f ! -name '.gitkeep' -delete
           find web/storage/imports/archives -type f ! -name '.gitkeep' -delete
+
+
+      - name: Single-recipe share smoke test
+        run: |
+          set -euo pipefail
+          rm -rf web/data
+          rm -f web/storage/database/brassica.sqlite
+          php -r '
+            require "web/app/bootstrap.php";
+            Brassica\Core\Installer::ensureReady();
+            $pdo = Brassica\Core\Database::connection();
+            $stmt = $pdo->prepare("INSERT INTO users(username,password_hash,created_at) VALUES(:u,:p,:c)");
+            $stmt->execute([
+              ":u" => "share-ci",
+              ":p" => password_hash("share-ci-password", PASSWORD_DEFAULT),
+              ":c" => date(DATE_ATOM),
+            ]);
+          '
+
+          php -S 127.0.0.1:18081 -t web/public web/public/index.php >/tmp/brassica-share-php.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true; rm -f web/storage/database/brassica.sqlite' EXIT
+          sleep 1
+
+          TOKEN_JSON=$(curl -fsS \
+            -u 'share-ci:share-ci-password' \
+            -H 'Content-Type: application/json' \
+            -d '{"deviceId":"share-ci-device","deviceName":"Share CI"}' \
+            http://127.0.0.1:18081/api/v1/sync/token)
+
+          TOKEN=$(printf '%s' "$TOKEN_JSON" | php -r '$j=json_decode(stream_get_contents(STDIN),true); echo $j["token"]??"";')
+          test -n "$TOKEN"
+
+          SHARE_JSON=$(curl -fsS \
+            -H "Authorization: Bearer $TOKEN" \
+            -H 'Content-Type: application/json' \
+            -d '{"recipe":{"uuid":"11111111-2222-4333-8444-555555555555","data":{"title":"Freigabe Test","description":"","directions":"","ingredients":"","notes":"","nutritionalValues":"","preparationTime":"","servings":"","source":"","favorite":false,"categories":[{"name":"Test"}]}}}' \
+            http://127.0.0.1:18081/api/v1/share/recipe)
+
+          SHARE_PATH=$(printf '%s' "$SHARE_JSON" | php -r '$j=json_decode(stream_get_contents(STDIN),true); echo $j["url"]??"";')
+          test -n "$SHARE_PATH"
+          printf '%s' "$SHARE_PATH" | grep -q '^/share/recipe/'
+
+          curl -fsS "http://127.0.0.1:18081$SHARE_PATH" >/tmp/brassica-shared-recipe.html
+
+          php -r '
+            require "web/app/bootstrap.php";
+            $pdo = Brassica\Core\Database::connection();
+            if ((int)$pdo->query("SELECT COUNT(*) FROM recipe_shares")->fetchColumn() !== 1) exit(20);
+            if ((int)$pdo->query("SELECT COUNT(*) FROM recipes WHERE title=\"Freigabe Test\"")->fetchColumn() !== 1) exit(21);
+          '
