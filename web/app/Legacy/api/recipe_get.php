@@ -112,7 +112,7 @@ try {
 		'source'           => $row['source'],
 		'favorite'         => (int)$row['favorite'],
 		'image_url'        => $row['image_path']
-			? ('../api/image.php?id=' . (int)$row['id'] . brassica_share_query_suffix($shareToken, $collectionToken))
+			? ('/api/image.php?id=' . (int)$row['id'] . brassica_share_query_suffix($shareToken, $collectionToken))
 			: null,
 		'categories'       => $categories,
 		'json_data'        => $jsonData,
