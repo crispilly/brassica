@@ -12,7 +12,10 @@ $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 // Basis-URL bestimmen
 $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$canonicalUrl = $scheme . '://' . $host . '/view.php?id=' . $id;
+$shareToken = isset($_GET['share_token']) ? trim((string)$_GET['share_token']) : '';
+$canonicalUrl = $shareToken !== ''
+    ? $scheme . '://' . $host . '/share/recipe/' . rawurlencode($shareToken)
+    : $scheme . '://' . $host . '/view.php?id=' . $id;
 $baseUrl = $scheme . '://' . $host;
 
 function broccoliTimeToIso8601(?string $time): ?string {
