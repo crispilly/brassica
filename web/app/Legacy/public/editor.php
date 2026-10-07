@@ -20,6 +20,7 @@ if (!$isPublicDownload) {
 }
 
 require_once __DIR__ . '/../api/db.php';
+require_once __DIR__ . '/../lib/share_access.php';
 $db = get_db();
 
 function send_broccoli_download(array $data, string $title, ?string $imagePathRel): void {
@@ -85,6 +86,18 @@ if ($id <= 0) {
 	http_response_code(400);
 	echo t('editor.invalid_id', 'Ungültige Rezept-ID.');
 	exit;
+}
+
+if ($isPublicDownload) {
+	$currentUserId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+	$shareToken = isset($_GET['share_token']) ? trim((string)$_GET['share_token']) : '';
+	$collectionToken = isset($_GET['collection_token']) ? trim((string)$_GET['collection_token']) : '';
+
+	if (!brassica_user_can_access_recipe($db, $id, $currentUserId, $shareToken, $collectionToken)) {
+		http_response_code(404);
+		echo t('editor.not_found_or_forbidden', 'Rezept nicht gefunden oder keine Berechtigung.');
+		exit;
+	}
 }
 
 // vorhandenes Rezept laden
