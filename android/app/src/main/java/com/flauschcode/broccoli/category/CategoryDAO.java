@@ -24,6 +24,6 @@ public interface CategoryDAO {
     @Query("SELECT * FROM categories ORDER BY name")
     LiveData<List<Category>> findAll();
 
-    @Query("SELECT * FROM categories WHERE name LIKE :name")
+    @Query("SELECT * FROM categories WHERE name = :name")
     Category searchByName(String name);
 }
