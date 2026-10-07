@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 use Brassica\Core\Router;
 use Brassica\Http\LegacyController;
+use Brassica\Http\PublicShareController;
 use Brassica\Http\SetupController;
 use Brassica\Http\SyncController;
 
@@ -76,6 +77,7 @@ return static function (Router $router): void {
     $router->get('/api/v1/sync/manifest', static fn() => SyncController::manifest());
     $router->get('/api/v1/sync/recipes/{uuid}', static fn(array $p) => SyncController::recipe($p));
     $router->post('/api/v1/sync/apply', static fn() => SyncController::apply());
+    $router->post('/api/v1/share/recipe', static fn() => SyncController::shareRecipe());
 
     // Lesbare Routen mit Parametern. Die alten *.php-URLs bleiben parallel erhalten.
     $router->get('/recipes/{id}', static function (array $p): void { $_GET['id'] = $p['id']; LegacyController::page('view'); });
@@ -83,6 +85,7 @@ return static function (Router $router): void {
     $router->any('/recipes/{id}/edit', static function (array $p): void { $_GET['id'] = $p['id']; LegacyController::page('editor'); });
     $router->get('/archives/{id}', static function (array $p): void { $_GET['archive_id'] = $p['id']; LegacyController::page('archive_view'); });
     $router->get('/share/{token}', static function (array $p): void { $_GET['token'] = $p['token']; LegacyController::page('index_open'); });
+    $router->get('/share/recipe/{token}', static fn(array $p) => PublicShareController::recipe($p));
     $router->get('/admin/users/{id}/recipes', static function (array $p): void { $_GET['user_id'] = $p['id']; LegacyController::page('admin_user_recipes'); });
     $router->get('/admin/collections/{id}/recipes', static function (array $p): void { $_GET['collection_id'] = $p['id']; LegacyController::page('admin_collection_recipes'); });
 
