@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/session_bootstrap.php';
+require_once __DIR__ . '/../lib/share_access.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -22,10 +23,14 @@ try {
 
     $db = get_db();
     $currentUserId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+    $shareToken = isset($_GET['share_token']) ? trim((string)$_GET['share_token']) : '';
+    $collectionToken = isset($_GET['collection_token']) ? trim((string)$_GET['collection_token']) : '';
 
-
-	// Multiuser: Rezepte gehören einem Benutzer (owner_id)
-	$ownerId = $userId;
+    if (!brassica_user_can_access_recipe($db, $id, $currentUserId, $shareToken, $collectionToken)) {
+        http_response_code(404);
+        echo json_encode(['error' => 'Rezept nicht gefunden.'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
 
 	// Rezept + Kategorien laden
 	$sql = 'SELECT
@@ -107,7 +112,7 @@ try {
 		'source'           => $row['source'],
 		'favorite'         => (int)$row['favorite'],
 		'image_url'        => $row['image_path']
-			? ('../api/image.php?id=' . (int)$row['id'])
+			? ('../api/image.php?id=' . (int)$row['id'] . brassica_share_query_suffix($shareToken, $collectionToken))
 			: null,
 		'categories'       => $categories,
 		'json_data'        => $jsonData,
