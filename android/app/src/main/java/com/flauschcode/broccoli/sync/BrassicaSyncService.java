@@ -1,10 +1,12 @@
 package com.flauschcode.broccoli.sync;
 
 import android.app.Application;
-import android.content.SharedPreferences;
+import android.os.Build;
 import android.util.Base64;
 
 import androidx.preference.PreferenceManager;
+
+import android.content.SharedPreferences;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,6 +24,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
@@ -43,6 +46,10 @@ import javax.inject.Singleton;
 public class BrassicaSyncService {
     public enum Action { UPLOAD, DOWNLOAD, CONFLICT }
 
+    public interface ProgressListener {
+        void onProgress(int completed, int total, String title);
+    }
+
     public static class SyncItem {
         public String uuid;
         public String title;
@@ -62,105 +69,652 @@ public class BrassicaSyncService {
     private final SharedPreferences prefs;
 
     @Inject
-    public BrassicaSyncService(Application application, RecipeRepository recipeRepository, CategoryRepository categoryRepository, RecipeImageService imageService) {
-        this.application=application; this.recipeRepository=recipeRepository; this.categoryRepository=categoryRepository; this.imageService=imageService;
-        this.prefs= PreferenceManager.getDefaultSharedPreferences(application);
+    public BrassicaSyncService(
+            Application application,
+            RecipeRepository recipeRepository,
+            CategoryRepository categoryRepository,
+            RecipeImageService imageService
+    ) {
+        this.application = application;
+        this.recipeRepository = recipeRepository;
+        this.categoryRepository = categoryRepository;
+        this.imageService = imageService;
+        this.prefs = PreferenceManager.getDefaultSharedPreferences(application);
     }
 
-    public void saveSettings(String server, String user, String password) {
-        prefs.edit().putString("sync-server", normalizeServer(server)).putString("sync-user", user.trim()).putString("sync-password", password).apply();
+    public void saveSettings(String server, String user) {
+        prefs.edit()
+                .putString("sync-server", normalizeServer(server))
+                .putString("sync-user", user.trim())
+                .apply();
     }
-    public String getServer(){return prefs.getString("sync-server","");}
-    public String getUser(){return prefs.getString("sync-user","");}
-    public String getPassword(){return prefs.getString("sync-password","");}
 
-    public CompletableFuture<List<SyncItem>> preview(String server,String user,String password) {
+    public String getServer() {
+        return prefs.getString("sync-server", "");
+    }
+
+    public String getUser() {
+        return prefs.getString("sync-user", "");
+    }
+
+    /**
+     * Passwörter werden ab 2.0.2 nicht mehr dauerhaft gespeichert.
+     * Ein eventuell aus 2.0.0/2.0.1 vorhandenes Passwort wird nur noch
+     * einmalig zur Erzeugung des Geräte-Keys benutzt und danach gelöscht.
+     */
+    public String getPassword() {
+        return "";
+    }
+
+    public boolean hasSyncKey(String server, String user) {
+        return tokenFor(server, user) != null;
+    }
+
+    public CompletableFuture<List<SyncItem>> preview(String server, String user, String password) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                saveSettings(server,user,password);
-                Map<String,RemoteItem> remote=loadRemoteManifest(server,user,password);
-                List<Recipe> localRecipes=recipeRepository.findAll().get();
-                Map<String,SyncItem> result=new LinkedHashMap<>();
-                for(Recipe recipe:localRecipes){
-                    String localHash=hash(recipe);
-                    String uuid=prefs.getString("sync-uuid-"+recipe.getRecipeId(),null);
-                    if(uuid==null){
-                        RemoteItem exact=null;
-                        for(RemoteItem candidate:remote.values()){
-                            if(localHash.equals(candidate.contentHash)){exact=candidate;break;}
-                        }
-                        if(exact!=null){uuid=exact.uuid;prefs.edit().putString("sync-uuid-"+recipe.getRecipeId(),uuid).apply();}
-                        else uuid=uuidFor(recipe.getRecipeId());
+                saveSettings(server, user);
+                String token = ensureToken(server, user, password);
+                Map<String, RemoteItem> remote;
+
+                try {
+                    remote = loadRemoteManifest(server, token);
+                } catch (IOException e) {
+                    if (isUnauthorized(e)) {
+                        clearToken(server, user);
+                        throw new IOException("Der Sync-Key ist ungültig oder wurde widerrufen. Bitte Passwort einmalig neu eingeben.");
                     }
-                    SyncItem item=new SyncItem();item.uuid=uuid;item.title=recipe.getTitle();item.localRecipe=recipe;item.localHash=localHash;item.categories=categoryNames(recipe);item.selected=true;
-                    RemoteItem r=remote.remove(uuid);
-                    if(r==null){item.action=Action.UPLOAD;} else {item.remoteHash=r.contentHash;if(item.localHash.equals(r.contentHash))continue;item.action=Action.CONFLICT;item.selected=false;item.categories=merge(item.categories,r.categories);}
-                    result.put(uuid,item);
+                    throw e;
                 }
-                for(RemoteItem r:remote.values()){
-                    SyncItem item=new SyncItem();item.uuid=r.uuid;item.title=r.title;item.remoteHash=r.contentHash;item.categories=r.categories;item.action=Action.DOWNLOAD;item.selected=true;result.put(item.uuid,item);
+
+                List<Recipe> localRecipes = recipeRepository.findAll().get();
+                Map<String, SyncItem> result = new LinkedHashMap<>();
+
+                for (Recipe recipe : localRecipes) {
+                    String localHash = syncHash(recipe);
+                    String uuid = prefs.getString("sync-uuid-" + recipe.getRecipeId(), null);
+
+                    if (uuid == null) {
+                        RemoteItem exact = null;
+                        for (RemoteItem candidate : remote.values()) {
+                            if (localHash.equals(candidate.syncHash)) {
+                                exact = candidate;
+                                break;
+                            }
+                        }
+
+                        if (exact != null) {
+                            uuid = exact.uuid;
+                            prefs.edit()
+                                    .putString("sync-uuid-" + recipe.getRecipeId(), uuid)
+                                    .apply();
+                            saveBaseHash(uuid, localHash);
+                        } else {
+                            uuid = uuidFor(recipe.getRecipeId());
+                        }
+                    }
+
+                    SyncItem item = new SyncItem();
+                    item.uuid = uuid;
+                    item.title = recipe.getTitle();
+                    item.localRecipe = recipe;
+                    item.localHash = localHash;
+                    item.categories = categoryNames(recipe);
+                    item.selected = true;
+
+                    RemoteItem remoteItem = remote.remove(uuid);
+
+                    if (remoteItem == null) {
+                        item.action = Action.UPLOAD;
+                    } else {
+                        item.remoteHash = remoteItem.syncHash;
+                        item.categories = merge(item.categories, remoteItem.categories);
+
+                        if (item.localHash.equals(item.remoteHash)) {
+                            saveBaseHash(uuid, item.localHash);
+                            continue;
+                        }
+
+                        String baseHash = baseHash(uuid);
+
+                        if (baseHash != null && item.localHash.equals(baseHash) && !item.remoteHash.equals(baseHash)) {
+                            item.action = Action.DOWNLOAD;
+                        } else if (baseHash != null && item.remoteHash.equals(baseHash) && !item.localHash.equals(baseHash)) {
+                            item.action = Action.UPLOAD;
+                        } else {
+                            item.action = Action.CONFLICT;
+                            item.selected = false;
+                        }
+                    }
+
+                    result.put(uuid, item);
                 }
-                List<SyncItem> out=new ArrayList<>(result.values());out.sort(Comparator.comparing(i->i.title==null?"":i.title,String.CASE_INSENSITIVE_ORDER));return out;
-            } catch(Exception e){throw new CompletionException(e);}
+
+                for (RemoteItem remoteItem : remote.values()) {
+                    SyncItem item = new SyncItem();
+                    item.uuid = remoteItem.uuid;
+                    item.title = remoteItem.title;
+                    item.remoteHash = remoteItem.syncHash;
+                    item.categories = remoteItem.categories;
+                    item.action = Action.DOWNLOAD;
+                    item.selected = true;
+                    result.put(item.uuid, item);
+                }
+
+                List<SyncItem> out = new ArrayList<>(result.values());
+                out.sort(Comparator.comparing(
+                        i -> i.title == null ? "" : i.title,
+                        String.CASE_INSENSITIVE_ORDER
+                ));
+                return out;
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
         });
     }
 
-    public CompletableFuture<Integer> sync(String server,String user,String password,List<SyncItem> items) {
+    public CompletableFuture<Integer> sync(
+            String server,
+            String user,
+            String password,
+            List<SyncItem> items,
+            ProgressListener progressListener
+    ) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                List<Map<String,Object>> uploads=new ArrayList<>();int count=0;
-                for(SyncItem item:items){if(!item.selected)continue;if(item.action==Action.UPLOAD){uploads.add(uploadPayload(item));count++;}}
-                if(!uploads.isEmpty()){Map<String,Object> body=new LinkedHashMap<>();body.put("recipes",uploads);requestJson("POST",normalizeServer(server)+"/api/v1/sync/apply",user,password,mapper.writeValueAsBytes(body));}
-                for(SyncItem item:items){if(!item.selected||item.action!=Action.DOWNLOAD)continue;downloadRecipe(server,user,password,item);count++;}
-                return count;
-            }catch(Exception e){throw new CompletionException(e);}
+                saveSettings(server, user);
+                String token = ensureToken(server, user, password);
+
+                List<SyncItem> selected = new ArrayList<>();
+                for (SyncItem item : items) {
+                    if (item.selected && item.action != Action.CONFLICT) {
+                        selected.add(item);
+                    }
+                }
+
+                int total = selected.size();
+                int completed = 0;
+
+                if (progressListener != null) {
+                    progressListener.onProgress(0, total, "");
+                }
+
+                for (SyncItem item : selected) {
+                    if (item.action == Action.UPLOAD) {
+                        String serverHash = uploadRecipe(server, token, item);
+                        if (item.localHash != null && !item.localHash.equals(serverHash)) {
+                            throw new IOException("Hash-Prüfung nach Upload fehlgeschlagen: " + safeTitle(item.title));
+                        }
+                        saveBaseHash(item.uuid, serverHash);
+                    } else if (item.action == Action.DOWNLOAD) {
+                        String localHash = downloadRecipe(server, token, item);
+                        if (item.remoteHash != null && !item.remoteHash.equals(localHash)) {
+                            throw new IOException("Hash-Prüfung nach Download fehlgeschlagen: " + safeTitle(item.title));
+                        }
+                        saveBaseHash(item.uuid, localHash);
+                    }
+
+                    completed++;
+                    if (progressListener != null) {
+                        progressListener.onProgress(completed, total, safeTitle(item.title));
+                    }
+                }
+
+                return completed;
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
         });
     }
 
-    private Map<String,Object> uploadPayload(SyncItem item) throws Exception {
-        Recipe recipe=item.localRecipe;Map<String,Object> p=new LinkedHashMap<>();p.put("uuid",item.uuid);p.put("data",dataFor(recipe));
-        if(recipe.getImageName()!=null&&!recipe.getImageName().isEmpty()){
-            File f=imageService.findImage(recipe.getImageName());if(f.exists()){p.put("imageName",recipe.getImageName());p.put("imageBase64",Base64.encodeToString(java.nio.file.Files.readAllBytes(f.toPath()),Base64.NO_WRAP));}
+    public CompletableFuture<Integer> sync(
+            String server,
+            String user,
+            String password,
+            List<SyncItem> items
+    ) {
+        return sync(server, user, password, items, null);
+    }
+
+    private String uploadRecipe(String server, String token, SyncItem item) throws Exception {
+        Map<String, Object> body = new LinkedHashMap<>();
+        List<Map<String, Object>> recipes = new ArrayList<>();
+        recipes.add(uploadPayload(item));
+        body.put("recipes", recipes);
+
+        byte[] response = requestJson(
+                "POST",
+                normalizeServer(server) + "/api/v1/sync/apply",
+                "Bearer " + token,
+                mapper.writeValueAsBytes(body)
+        );
+
+        Map<String, Object> root = mapper.readValue(
+                response,
+                new TypeReference<Map<String, Object>>() {}
+        );
+
+        Object hashesObject = root.get("hashes");
+        if (hashesObject instanceof Map<?, ?> hashes) {
+            Object value = hashes.get(item.uuid);
+            if (value != null) {
+                return String.valueOf(value);
+            }
         }
-        return p;
+
+        return syncHash(item.localRecipe);
+    }
+
+    private Map<String, Object> uploadPayload(SyncItem item) throws Exception {
+        Recipe recipe = item.localRecipe;
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("uuid", item.uuid);
+        payload.put("data", dataFor(recipe));
+
+        if (recipe.getImageName() != null && !recipe.getImageName().isEmpty()) {
+            File file = imageService.findImage(recipe.getImageName());
+            if (file.exists()) {
+                payload.put("imageName", recipe.getImageName());
+                payload.put(
+                        "imageBase64",
+                        Base64.encodeToString(
+                                java.nio.file.Files.readAllBytes(file.toPath()),
+                                Base64.NO_WRAP
+                        )
+                );
+            }
+        }
+
+        return payload;
     }
 
     @SuppressWarnings("unchecked")
-    private void downloadRecipe(String server,String user,String password,SyncItem item) throws Exception {
-        String uuid=item.uuid;
-        Map<String,Object> payload=mapper.readValue(requestJson("GET",normalizeServer(server)+"/api/v1/sync/recipes/"+java.net.URLEncoder.encode(uuid,"UTF-8"),user,password,null),new TypeReference<Map<String,Object>>(){});
-        Object dataObject=payload.get("data");Recipe recipe=mapper.convertValue(dataObject,Recipe.class);
+    private String downloadRecipe(String server, String token, SyncItem item) throws Exception {
+        String uuid = item.uuid;
+        Map<String, Object> payload = mapper.readValue(
+                requestJson(
+                        "GET",
+                        normalizeServer(server) + "/api/v1/sync/recipes/" + URLEncoder.encode(uuid, "UTF-8"),
+                        "Bearer " + token,
+                        null
+                ),
+                new TypeReference<Map<String, Object>>() {}
+        );
+
+        Object dataObject = payload.get("data");
+        Recipe recipe = mapper.convertValue(dataObject, Recipe.class);
         recipe.setRecipeId(item.localRecipe == null ? 0 : item.localRecipe.getRecipeId());
-        List<Category> requested=recipe.getCategories()==null?new ArrayList<>():recipe.getCategories();
-        for(Category c:categoryRepository.retainNonExisting(requested).get())categoryRepository.insertOrUpdate(c).get();
+
+        List<Category> requested = recipe.getCategories() == null
+                ? new ArrayList<>()
+                : recipe.getCategories();
+
+        for (Category category : categoryRepository.retainNonExisting(requested).get()) {
+            categoryRepository.insertOrUpdate(category).get();
+        }
         recipe.setCategories(categoryRepository.retainExisting(requested).get());
-        String imageBase64=(String)payload.get("imageBase64");
-        if(imageBase64!=null&&!imageBase64.isEmpty()){
-            byte[] raw=Base64.decode(imageBase64,Base64.DEFAULT);File temp=imageService.createTemporaryImageFileInCache();try(OutputStream out=new java.io.FileOutputStream(temp)){out.write(raw);}recipe.setImageName(temp.getName());
-        }else recipe.setImageName("");
-        long id=recipeRepository.insertOrUpdate(recipe).get();prefs.edit().putString("sync-uuid-"+id,uuid).apply();
-        if(!recipe.getImageName().isEmpty())imageService.moveImage(recipe.getImageName()).get();
+
+        String imageBase64 = (String)payload.get("imageBase64");
+        if (imageBase64 != null && !imageBase64.isEmpty()) {
+            byte[] raw = Base64.decode(imageBase64, Base64.DEFAULT);
+            File temp = imageService.createTemporaryImageFileInCache();
+            try (OutputStream out = new java.io.FileOutputStream(temp)) {
+                out.write(raw);
+            }
+            recipe.setImageName(temp.getName());
+        } else {
+            recipe.setImageName("");
+        }
+
+        long id = recipeRepository.insertOrUpdate(recipe).get();
+        prefs.edit().putString("sync-uuid-" + id, uuid).apply();
+
+        if (!recipe.getImageName().isEmpty()) {
+            imageService.moveImage(recipe.getImageName()).get();
+        }
+
+        return syncHash(recipe);
     }
 
-    private Map<String,RemoteItem> loadRemoteManifest(String server,String user,String password) throws Exception {
-        byte[] bytes=requestJson("GET",normalizeServer(server)+"/api/v1/sync/manifest",user,password,null);
-        Map<String,Object> root=mapper.readValue(bytes,new TypeReference<Map<String,Object>>(){});Map<String,RemoteItem> out=new HashMap<>();
-        Object items=root.get("items");if(items instanceof List<?> list){for(Object obj:list){Map<String,Object> m=(Map<String,Object>)obj;RemoteItem r=new RemoteItem();r.uuid=String.valueOf(m.get("uuid"));r.title=String.valueOf(m.get("title"));r.contentHash=String.valueOf(m.get("contentHash"));Object cats=m.get("categories");if(cats instanceof List<?> cl)for(Object c:cl)r.categories.add(String.valueOf(c));out.put(r.uuid,r);}}
+    @SuppressWarnings("unchecked")
+    private Map<String, RemoteItem> loadRemoteManifest(String server, String token) throws Exception {
+        byte[] bytes = requestJson(
+                "GET",
+                normalizeServer(server) + "/api/v1/sync/manifest",
+                "Bearer " + token,
+                null
+        );
+
+        Map<String, Object> root = mapper.readValue(
+                bytes,
+                new TypeReference<Map<String, Object>>() {}
+        );
+
+        Map<String, RemoteItem> out = new HashMap<>();
+        Object items = root.get("items");
+
+        if (items instanceof List<?> list) {
+            for (Object obj : list) {
+                Map<String, Object> map = (Map<String, Object>)obj;
+                RemoteItem remote = new RemoteItem();
+                remote.uuid = String.valueOf(map.get("uuid"));
+                remote.title = String.valueOf(map.get("title"));
+                remote.contentHash = nullableString(map.get("contentHash"));
+                remote.imageHash = nullableString(map.get("imageHash"));
+                remote.syncHash = nullableString(map.get("syncHash"));
+
+                if (remote.syncHash == null || remote.syncHash.isEmpty()) {
+                    remote.syncHash = combinedHash(remote.contentHash, remote.imageHash);
+                }
+
+                Object cats = map.get("categories");
+                if (cats instanceof List<?> categoryList) {
+                    for (Object category : categoryList) {
+                        remote.categories.add(String.valueOf(category));
+                    }
+                }
+
+                out.put(remote.uuid, remote);
+            }
+        }
+
         return out;
     }
 
-    private byte[] requestJson(String method,String url,String user,String password,byte[] body) throws IOException {
-        HttpURLConnection c=(HttpURLConnection)new URL(url).openConnection();c.setRequestMethod(method);c.setConnectTimeout(15000);c.setReadTimeout(30000);c.setRequestProperty("Accept","application/json");
-        String auth=Base64.encodeToString((user+":"+password).getBytes(StandardCharsets.UTF_8),Base64.NO_WRAP);c.setRequestProperty("Authorization","Basic "+auth);
-        if(body!=null){c.setDoOutput(true);c.setRequestProperty("Content-Type","application/json; charset=utf-8");try(OutputStream out=c.getOutputStream()){out.write(body);}}
-        int code=c.getResponseCode();InputStream in=code>=200&&code<300?c.getInputStream():c.getErrorStream();byte[] bytes=readAll(in);if(code<200||code>=300)throw new IOException("HTTP "+code+": "+new String(bytes,StandardCharsets.UTF_8));return bytes;
+    private String ensureToken(String server, String user, String password) throws Exception {
+        String existing = tokenFor(server, user);
+        if (existing != null) {
+            return existing;
+        }
+
+        String pairingPassword = password == null ? "" : password;
+        if (pairingPassword.isEmpty()) {
+            pairingPassword = prefs.getString("sync-password", "");
+        }
+
+        if (user == null || user.trim().isEmpty() || pairingPassword.isEmpty()) {
+            throw new IOException("Für die erste Verbindung bitte Benutzername und Passwort eingeben. Danach verwendet Brassica nur noch den Geräte-Key.");
+        }
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("deviceId", deviceId());
+        body.put("deviceName", deviceName());
+
+        String basic = Base64.encodeToString(
+                (user.trim() + ":" + pairingPassword).getBytes(StandardCharsets.UTF_8),
+                Base64.NO_WRAP
+        );
+
+        byte[] response = requestJson(
+                "POST",
+                normalizeServer(server) + "/api/v1/sync/token",
+                "Basic " + basic,
+                mapper.writeValueAsBytes(body)
+        );
+
+        Map<String, Object> root = mapper.readValue(
+                response,
+                new TypeReference<Map<String, Object>>() {}
+        );
+
+        String token = nullableString(root.get("token"));
+        if (token == null || token.isEmpty()) {
+            throw new IOException("Server hat keinen Sync-Key geliefert.");
+        }
+
+        prefs.edit()
+                .putString("sync-token", token)
+                .putString("sync-token-server", normalizeServer(server))
+                .putString("sync-token-user", user.trim())
+                .remove("sync-password")
+                .apply();
+
+        return token;
     }
-    private byte[] readAll(InputStream in)throws IOException{if(in==null)return new byte[0];try(in;ByteArrayOutputStream out=new ByteArrayOutputStream()){FileUtils.copy(in,out);return out.toByteArray();}}
-    private String normalizeServer(String s){s=s==null?"":s.trim();while(s.endsWith("/"))s=s.substring(0,s.length()-1);return s;}
-    private String uuidFor(long recipeId){String key="sync-uuid-"+recipeId;String uuid=prefs.getString(key,null);if(uuid==null){uuid=UUID.randomUUID().toString();prefs.edit().putString(key,uuid).apply();}return uuid;}
-    private List<String> categoryNames(Recipe recipe){List<String> out=new ArrayList<>();for(Category c:recipe.getCategories())out.add(c.getName());out.sort(String.CASE_INSENSITIVE_ORDER);return out;}
-    private List<String> merge(List<String>a,List<String>b){Set<String>s=new LinkedHashSet<>(a);s.addAll(b);return new ArrayList<>(s);}
-    private Map<String,Object> dataFor(Recipe r){Map<String,Object>d=new LinkedHashMap<>();d.put("title",r.getTitle());d.put("description",r.getDescription());d.put("directions",r.getDirections());d.put("ingredients",r.getIngredients());d.put("notes",r.getNotes());d.put("nutritionalValues",r.getNutritionalValues());d.put("preparationTime",r.getPreparationTime());d.put("servings",r.getServings());d.put("source",r.getSource());d.put("favorite",r.isFavorite());List<Map<String,String>>cats=new ArrayList<>();for(String n:categoryNames(r)){Map<String,String>c=new LinkedHashMap<>();c.put("name",n);cats.add(c);}d.put("categories",cats);return d;}
-    private String hash(Recipe recipe)throws Exception{byte[] bytes=mapper.writeValueAsBytes(dataFor(recipe));MessageDigest md=MessageDigest.getInstance("SHA-256");byte[] h=md.digest(bytes);StringBuilder sb=new StringBuilder();for(byte b:h)sb.append(String.format("%02x",b));return sb.toString();}
-    private static class RemoteItem{String uuid,title,contentHash;List<String>categories=new ArrayList<>();}
+
+    private String tokenFor(String server, String user) {
+        String token = prefs.getString("sync-token", null);
+        String tokenServer = prefs.getString("sync-token-server", "");
+        String tokenUser = prefs.getString("sync-token-user", "");
+
+        if (token == null || token.isEmpty()) {
+            return null;
+        }
+
+        if (!normalizeServer(server).equals(tokenServer) || !safe(user).trim().equals(tokenUser)) {
+            return null;
+        }
+
+        return token;
+    }
+
+    private void clearToken(String server, String user) {
+        if (tokenFor(server, user) == null) {
+            return;
+        }
+
+        prefs.edit()
+                .remove("sync-token")
+                .remove("sync-token-server")
+                .remove("sync-token-user")
+                .apply();
+    }
+
+    private String deviceId() {
+        String id = prefs.getString("sync-device-id", null);
+        if (id == null || id.isEmpty()) {
+            id = UUID.randomUUID().toString();
+            prefs.edit().putString("sync-device-id", id).apply();
+        }
+        return id;
+    }
+
+    private String deviceName() {
+        String manufacturer = safe(Build.MANUFACTURER).trim();
+        String model = safe(Build.MODEL).trim();
+        String value = (manufacturer + " " + model).trim();
+        return value.isEmpty() ? "Brassica Android" : value;
+    }
+
+    private byte[] requestJson(
+            String method,
+            String url,
+            String authorization,
+            byte[] body
+    ) throws IOException {
+        HttpURLConnection connection = (HttpURLConnection)new URL(url).openConnection();
+        connection.setRequestMethod(method);
+        connection.setConnectTimeout(15000);
+        connection.setReadTimeout(30000);
+        connection.setRequestProperty("Accept", "application/json");
+
+        if (authorization != null && !authorization.isEmpty()) {
+            connection.setRequestProperty("Authorization", authorization);
+        }
+
+        if (body != null) {
+            connection.setDoOutput(true);
+            connection.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+            try (OutputStream out = connection.getOutputStream()) {
+                out.write(body);
+            }
+        }
+
+        int code = connection.getResponseCode();
+        InputStream in = code >= 200 && code < 300
+                ? connection.getInputStream()
+                : connection.getErrorStream();
+        byte[] bytes = readAll(in);
+
+        if (code < 200 || code >= 300) {
+            throw new IOException("HTTP " + code + ": " + new String(bytes, StandardCharsets.UTF_8));
+        }
+
+        return bytes;
+    }
+
+    private byte[] readAll(InputStream in) throws IOException {
+        if (in == null) {
+            return new byte[0];
+        }
+
+        try (in; ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            FileUtils.copy(in, out);
+            return out.toByteArray();
+        }
+    }
+
+    private String normalizeServer(String value) {
+        String server = value == null ? "" : value.trim();
+        while (server.endsWith("/")) {
+            server = server.substring(0, server.length() - 1);
+        }
+        return server;
+    }
+
+    private String uuidFor(long recipeId) {
+        String key = "sync-uuid-" + recipeId;
+        String uuid = prefs.getString(key, null);
+
+        if (uuid == null) {
+            uuid = UUID.randomUUID().toString();
+            prefs.edit().putString(key, uuid).apply();
+        }
+
+        return uuid;
+    }
+
+    private String baseHash(String uuid) {
+        return prefs.getString("sync-base-" + uuid, null);
+    }
+
+    private void saveBaseHash(String uuid, String hash) {
+        if (uuid == null || hash == null || hash.isEmpty()) {
+            return;
+        }
+        prefs.edit().putString("sync-base-" + uuid, hash).apply();
+    }
+
+    private List<String> categoryNames(Recipe recipe) {
+        Set<String> unique = new LinkedHashSet<>();
+        if (recipe.getCategories() != null) {
+            for (Category category : recipe.getCategories()) {
+                if (category != null && category.getName() != null && !category.getName().trim().isEmpty()) {
+                    unique.add(category.getName());
+                }
+            }
+        }
+
+        List<String> out = new ArrayList<>(unique);
+        out.sort(String.CASE_INSENSITIVE_ORDER);
+        return out;
+    }
+
+    private List<String> merge(List<String> first, List<String> second) {
+        Set<String> set = new LinkedHashSet<>(first);
+        set.addAll(second);
+        return new ArrayList<>(set);
+    }
+
+    private Map<String, Object> dataFor(Recipe recipe) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("title", safe(recipe.getTitle()));
+        data.put("description", safe(recipe.getDescription()));
+        data.put("directions", safe(recipe.getDirections()));
+        data.put("ingredients", safe(recipe.getIngredients()));
+        data.put("notes", safe(recipe.getNotes()));
+        data.put("nutritionalValues", safe(recipe.getNutritionalValues()));
+        data.put("preparationTime", safe(recipe.getPreparationTime()));
+        data.put("servings", safe(recipe.getServings()));
+        data.put("source", safe(recipe.getSource()));
+        data.put("favorite", recipe.isFavorite());
+
+        List<Map<String, String>> cats = new ArrayList<>();
+        for (String name : categoryNames(recipe)) {
+            Map<String, String> cat = new LinkedHashMap<>();
+            cat.put("name", name);
+            cats.add(cat);
+        }
+        data.put("categories", cats);
+
+        return data;
+    }
+
+    private String syncHash(Recipe recipe) throws Exception {
+        return combinedHash(contentHash(recipe), imageHash(recipe));
+    }
+
+    private String contentHash(Recipe recipe) throws Exception {
+        return sha256(mapper.writeValueAsBytes(dataFor(recipe)));
+    }
+
+    private String imageHash(Recipe recipe) throws Exception {
+        if (recipe == null || recipe.getImageName() == null || recipe.getImageName().isEmpty()) {
+            return null;
+        }
+
+        File file = imageService.findImage(recipe.getImageName());
+        if (!file.exists()) {
+            return null;
+        }
+
+        return sha256(java.nio.file.Files.readAllBytes(file.toPath()));
+    }
+
+    private String combinedHash(String contentHash, String imageHash) {
+        return sha256Unchecked(safe(contentHash) + "|" + safe(imageHash));
+    }
+
+    private String sha256(byte[] value) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hash = digest.digest(value);
+        return hex(hash);
+    }
+
+    private String sha256Unchecked(String value) {
+        try {
+            return sha256(value.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private String hex(byte[] bytes) {
+        StringBuilder out = new StringBuilder();
+        for (byte value : bytes) {
+            out.append(String.format("%02x", value));
+        }
+        return out.toString();
+    }
+
+    private boolean isUnauthorized(IOException e) {
+        String message = e.getMessage();
+        return message != null && message.startsWith("HTTP 401");
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value;
+    }
+
+    private String safeTitle(String value) {
+        String title = safe(value).trim();
+        return title.isEmpty() ? "Rezept" : title;
+    }
+
+    private String nullableString(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String string = String.valueOf(value);
+        return "null".equals(string) ? null : string;
+    }
+
+    private static class RemoteItem {
+        String uuid;
+        String title;
+        String contentHash;
+        String imageHash;
+        String syncHash;
+        List<String> categories = new ArrayList<>();
+    }
 }
