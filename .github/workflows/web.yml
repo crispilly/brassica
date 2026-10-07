@@ -19,7 +19,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: pdo_sqlite
+          extensions: pdo_sqlite, zip
 
       - name: PHP syntax check
         run: find web -type f -name '*.php' -print0 | xargs -0 -n1 php -l
@@ -110,7 +110,7 @@ jobs:
           SHARE_JSON=$(curl -fsS \
             -H "Authorization: Bearer $TOKEN" \
             -H 'Content-Type: application/json' \
-            -d '{"recipe":{"uuid":"11111111-2222-4333-8444-555555555555","data":{"title":"Freigabe Test","description":"","directions":"","ingredients":"","notes":"","nutritionalValues":"","preparationTime":"","servings":"","source":"","favorite":false,"categories":[{"name":"Test"}]}}}' \
+            -d '{"recipe":{"uuid":"11111111-2222-4333-8444-555555555555","data":{"title":"Freigabe Test","description":"","directions":"","ingredients":"","notes":"","nutritionalValues":"","preparationTime":"","servings":"","source":"","favorite":false,"categories":[{"name":"Test"}]},"imageName":"share-test.png","imageBase64":"c2hhcmUtaW1hZ2U="}}' \
             http://127.0.0.1:18081/api/v1/share/recipe)
 
           SHARE_PATH=$(printf '%s' "$SHARE_JSON" | php -r '$j=json_decode(stream_get_contents(STDIN),true); echo $j["url"]??"";')
@@ -137,6 +137,29 @@ jobs:
           curl -fsS "http://127.0.0.1:18081/api/recipe_get.php?id=$RID&share_token=$SHARE_TOKEN" >/tmp/token-recipe.json
           curl -fsS "http://127.0.0.1:18081/editor.php?id=$RID&download=1&share_token=$SHARE_TOKEN" >/tmp/token-recipe.broccoli
           test -s /tmp/token-recipe.broccoli
+          unzip -l /tmp/token-recipe.broccoli | grep -F 'share-test.png'
+
+          # Auch der Export aus Übersicht/geteilter Sammlung muss das Bild in die .broccoli schreiben.
+          php -r '
+            require "web/app/bootstrap.php";
+            $pdo = Brassica\Core\Database::connection();
+            $uid = (int)$pdo->query("SELECT id FROM users WHERE username=\"share-ci\" LIMIT 1")->fetchColumn();
+            $rid = (int)$pdo->query("SELECT id FROM recipes WHERE title=\"Freigabe Test\" LIMIT 1")->fetchColumn();
+            $stmt = $pdo->prepare("INSERT INTO collections(owner_id,token,created_at) VALUES(:uid,:token,:created)");
+            $stmt->execute([":uid"=>$uid,":token"=>"ci-collection-token",":created"=>date(DATE_ATOM)]);
+            $cid = (int)$pdo->lastInsertId();
+            $stmt = $pdo->prepare("INSERT INTO collection_recipes(collection_id,recipe_id) VALUES(:cid,:rid)");
+            $stmt->execute([":cid"=>$cid,":rid"=>$rid]);
+          '
+
+          curl -fsS \
+            -X POST \
+            -d "ids=$RID" \
+            -d "collection_token=ci-collection-token" \
+            http://127.0.0.1:18081/api/recipes_export.php \
+            >/tmp/exported-recipe.broccoli
+          test -s /tmp/exported-recipe.broccoli
+          unzip -l /tmp/exported-recipe.broccoli | grep -F 'share-test.png'
 
           php -r '
             require "web/app/bootstrap.php";
