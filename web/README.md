@@ -40,3 +40,9 @@ Enthalten sind unter anderem:
 - SQLite-Datenbank außerhalb des öffentlichen Ordners
 
 Die Struktur der ursprünglichen Brassica-Datenbanktabellen wurde beim Refactoring nicht fachlich umgebaut.
+
+## Migration von Brassica 1.x
+
+Brassica 2.x kann eine vorhandene 1.x-Datenbasis beim ersten Browseraufruf automatisch übernehmen. Dafür wird der alte `data/`-Ordner in den Root der neuen V2-Webinstallation kopiert. Die Quelldaten bleiben unverändert erhalten.
+
+Ausführliche Anleitung: [`docs/MIGRATION_V1_TO_V2.md`](../docs/MIGRATION_V1_TO_V2.md)
