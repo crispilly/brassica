@@ -170,7 +170,7 @@ if ($id > 0) {
 				$data['image'] = [
 					[
 						'@type' => 'ImageObject',
-						'url'   => $baseUrl . '/api/image.php?id=' . $id,
+						'url'   => $baseUrl . '/api/image.php?id=' . $id . brassica_share_query_suffix($shareToken, $collectionToken),
 					]
 				];
 			}
