@@ -1,0 +1,118 @@
+name: Publish Brassica 2.0.2 release
+
+on:
+  push:
+    paths:
+      - '.github/workflows/release-2.0.2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare Android SDK
+        run: |
+          set -euo pipefail
+          SDKMANAGER=/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
+
+      - name: Build Android APK
+        working-directory: android
+        run: ./gradlew assembleFdroidDebug
+
+      - name: Prepare release assets
+        run: |
+          set -euo pipefail
+          mkdir -p release/Brassica-Web-2.0.2
+          cp -a web/. release/Brassica-Web-2.0.2/
+          rm -f release/Brassica-Web-2.0.2/storage/database/brassica.sqlite
+          find release/Brassica-Web-2.0.2/storage -type f ! -name '.gitkeep' -delete
+
+          (
+            cd release
+            zip -qr Brassica-Web-2.0.2.zip Brassica-Web-2.0.2
+          )
+
+          cp android/app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk release/Brassica-Android-2.0.2.apk
+
+          (
+            cd release
+            sha256sum Brassica-Web-2.0.2.zip Brassica-Android-2.0.2.apk > SHA256SUMS.txt
+          )
+
+          cat > release/RELEASE_NOTES.md <<'EOF'
+          # Brassica 2.0.2
+
+          Sync-Fix für Brassica Web und Brassica Android.
+
+          ## Wichtig beim Update
+
+          **Zuerst Brassica Web 2.0.2 aktualisieren, danach Brassica Android 2.0.2 installieren.**
+
+          Die neue Android-App erzeugt beim ersten Sync einen Geräte-Key über den neuen Web-Endpunkt. Ein aus 2.0.0/2.0.1 noch gespeichertes Passwort wird dafür einmalig verwendet und danach aus den App-Einstellungen entfernt.
+
+          ## Sync-Authentifizierung
+
+          - Benutzername + Passwort nur noch zur einmaligen Paarung
+          - danach zufälliger gerätegebundener Sync-Key
+          - weitere API-Aufrufe per Bearer-Key
+          - Server speichert nur den SHA-256-Hash des Keys
+          - Passwort wird in Android nicht mehr dauerhaft gespeichert
+
+          ## Konflikterkennung
+
+          Die bisherige Logik wertete jede unterschiedliche lokale/Server-Version pauschal als Konflikt.
+
+          2.0.2 verwendet einen echten Drei-Wege-Abgleich:
+
+          - lokaler Hash
+          - Server-Hash
+          - zuletzt erfolgreich synchronisierter gemeinsamer Hash
+
+          Ergebnis:
+
+          - lokal = Server → kein Sync nötig
+          - nur Server geändert → Server → App
+          - nur App geändert → App → Server
+          - beide geändert → echter Konflikt
+
+          Zusätzlich werden leere Felder und Kategorien auf Android und Web identisch kanonisiert. Bild-Bytehashes werden nicht für Konflikte verwendet, da Android Bilder beim lokalen Speichern komprimiert.
+
+          ## Fortschritt
+
+          - sichtbarer Fortschrittsbalken
+          - Anzeige `x von y`
+          - Name des gerade synchronisierten Rezepts
+          - sichtbarer Abschlussdialog
+          - danach automatische neue Syncvorschau
+
+          ## Web
+
+          Der Server akzeptiert für Android 2.0.0/2.0.1 vorläufig weiterhin die alte Basic-Authentifizierung. Neue App-Versionen verwenden den Geräte-Key.
+
+          ## APK-Signatur
+
+          Die APK ist weiterhin die F-Droid-Debug-Variante und mit dem Android-Debugschlüssel signiert.
+          EOF
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create v2.0.2 \
+            --target "${GITHUB_SHA}" \
+            --title "Brassica 2.0.2" \
+            --notes-file release/RELEASE_NOTES.md \
+            release/Brassica-Web-2.0.2.zip \
+            release/Brassica-Android-2.0.2.apk \
+            release/SHA256SUMS.txt
