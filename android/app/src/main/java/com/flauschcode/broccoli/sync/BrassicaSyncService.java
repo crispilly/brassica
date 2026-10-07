@@ -342,7 +342,22 @@ public class BrassicaSyncService {
         );
 
         Object dataObject = payload.get("data");
-        Recipe recipe = mapper.convertValue(dataObject, Recipe.class);
+        if (!(dataObject instanceof Map<?, ?> rawData)) {
+            throw new IOException("Ungültige Rezeptdaten vom Server: " + safeTitle(item.title));
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> dataMap = (Map<String, Object>)rawData;
+
+        // Vor dem lokalen Speichern prüfen. So kann eine fehlerhafte
+        // Übertragung nicht erst NACH einem bereits erfolgten Import
+        // den kompletten Sync abbrechen.
+        String payloadHash = contentHashFromData(dataMap);
+        if (item.remoteHash != null && !item.remoteHash.equals(payloadHash)) {
+            throw new IOException("Hash-Prüfung vor Download fehlgeschlagen: " + safeTitle(item.title));
+        }
+
+        Recipe recipe = mapper.convertValue(dataMap, Recipe.class);
         recipe.setRecipeId(item.localRecipe == null ? 0 : item.localRecipe.getRecipeId());
 
         List<Category> requested = recipe.getCategories() == null
@@ -373,7 +388,7 @@ public class BrassicaSyncService {
             imageService.moveImage(recipe.getImageName()).get();
         }
 
-        return syncHash(recipe);
+        return payloadHash;
     }
 
     @SuppressWarnings("unchecked")
@@ -647,7 +662,84 @@ public class BrassicaSyncService {
     }
 
     private String contentHash(Recipe recipe) throws Exception {
-        return sha256(mapper.writeValueAsBytes(dataFor(recipe)));
+        return contentHashFromData(dataFor(recipe));
+    }
+
+    private String contentHashFromData(Map<String, Object> data) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        writeUtf8(out, "brassica-sync-v3");
+        out.write(0);
+
+        for (String field : List.of(
+                "title",
+                "description",
+                "directions",
+                "ingredients",
+                "notes",
+                "nutritionalValues",
+                "preparationTime",
+                "servings",
+                "source"
+        )) {
+            writeField(out, field, valueAsString(data.get(field)));
+        }
+
+        writeUtf8(out, "favorite");
+        out.write(0);
+        writeUtf8(out, Boolean.TRUE.equals(data.get("favorite")) ? "1" : "0");
+        out.write(0);
+
+        List<String> categories = new ArrayList<>();
+        Object categoriesObject = data.get("categories");
+        if (categoriesObject instanceof List<?> list) {
+            for (Object entry : list) {
+                if (entry instanceof Map<?, ?> map) {
+                    String name = valueAsString(map.get("name"));
+                    if (!name.isEmpty() && !categories.contains(name)) {
+                        categories.add(name);
+                    }
+                } else {
+                    String name = valueAsString(entry);
+                    if (!name.isEmpty() && !categories.contains(name)) {
+                        categories.add(name);
+                    }
+                }
+            }
+        }
+        categories.sort(String::compareTo);
+
+        writeUtf8(out, "categories");
+        out.write(0);
+        writeUtf8(out, Integer.toString(categories.size()));
+        out.write(0);
+
+        for (String category : categories) {
+            byte[] bytes = category.getBytes(StandardCharsets.UTF_8);
+            writeUtf8(out, Integer.toString(bytes.length));
+            out.write(0);
+            out.write(bytes);
+            out.write(0);
+        }
+
+        return sha256(out.toByteArray());
+    }
+
+    private void writeField(ByteArrayOutputStream out, String field, String value) throws IOException {
+        byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+        writeUtf8(out, field);
+        out.write(0);
+        writeUtf8(out, Integer.toString(bytes.length));
+        out.write(0);
+        out.write(bytes);
+        out.write(0);
+    }
+
+    private void writeUtf8(ByteArrayOutputStream out, String value) throws IOException {
+        out.write(value.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private String valueAsString(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 
     private String imageHash(Recipe recipe) throws Exception {
