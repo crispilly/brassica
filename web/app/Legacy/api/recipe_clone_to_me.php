@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/session_bootstrap.php';
+require_once __DIR__ . '/../lib/share_access.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -19,6 +20,8 @@ try {
 	}
 
 	$recipeId = (int)$data['id'];
+	$shareToken = trim((string)($data['share_token'] ?? ''));
+	$collectionToken = trim((string)($data['collection_token'] ?? ''));
 	if ($recipeId <= 0) {
 		http_response_code(400);
 		echo json_encode(['error' => 'Ungültige Rezept-ID'], JSON_UNESCAPED_UNICODE);
@@ -47,6 +50,12 @@ try {
 			'new_recipe_id'=> null,
 		], JSON_UNESCAPED_UNICODE);
 		return;
+	}
+
+	if (!brassica_user_can_access_recipe($db, $recipeId, $userId, $shareToken, $collectionToken)) {
+		http_response_code(404);
+		echo json_encode(['error' => 'Rezept nicht gefunden.'], JSON_UNESCAPED_UNICODE);
+		exit;
 	}
 
 	$db->beginTransaction();
