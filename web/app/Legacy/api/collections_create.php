@@ -97,7 +97,7 @@ try {
 	// URL für die öffentliche Ansicht der Sammlung zurückgeben
 	echo json_encode([
 		'success' => true,
-		'url'     => 'index_open.php?token=' . $token,
+		'url'     => '/share/' . rawurlencode($token),
 	], JSON_UNESCAPED_UNICODE);
 
 } catch (Throwable $e) {
