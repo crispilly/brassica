@@ -36,17 +36,38 @@ public class ShareRecipeAsFileService {
     }
 
     public Uri shareAsFile(Recipe recipe) throws IOException {
-        String title = recipe.getTitle();
+        File zipFile = new File(application.getCacheDir(), suggestedFileName(recipe));
 
-        String zipFileName = title.replaceAll("[^a-zA-Z0-9\\.\\-]", "_") + ".broccoli";
-        File zipFile = new File(application.getCacheDir(), zipFileName);
-
-        try (FileOutputStream fos = new FileOutputStream(zipFile); ZipOutputStream zos = new ZipOutputStream(fos)) {
-            zos.setComment(String.valueOf(BuildConfig.VERSION_CODE));
-            recipeZipWriter.write(recipe).to(zos);
+        try (FileOutputStream fos = new FileOutputStream(zipFile)) {
+            writeRecipe(recipe, fos);
         }
 
         return FileProvider.getUriForFile(application, AUTHORITY, zipFile);
+    }
+
+    public String suggestedFileName(Recipe recipe) {
+        String title = recipe.getTitle() == null ? "recipe" : recipe.getTitle();
+        String safeTitle = title.replaceAll("[^a-zA-Z0-9\\.\\-]", "_");
+        if (safeTitle.isEmpty()) {
+            safeTitle = "recipe";
+        }
+        return safeTitle + ".broccoli";
+    }
+
+    public void saveAsFile(Recipe recipe, Uri target) throws IOException {
+        try (java.io.OutputStream out = application.getContentResolver().openOutputStream(target)) {
+            if (out == null) {
+                throw new IOException("Zieldatei konnte nicht geöffnet werden.");
+            }
+            writeRecipe(recipe, out);
+        }
+    }
+
+    private void writeRecipe(Recipe recipe, java.io.OutputStream out) throws IOException {
+        try (ZipOutputStream zos = new ZipOutputStream(out)) {
+            zos.setComment(String.valueOf(BuildConfig.VERSION_CODE));
+            recipeZipWriter.write(recipe).to(zos);
+        }
     }
 
     public Optional<Recipe> loadFromFile(Uri uri) {
