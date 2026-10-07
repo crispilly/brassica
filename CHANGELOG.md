@@ -10,6 +10,10 @@
 - Pro Rezept wird eine dauerhafte öffentliche Freigabe-URL erzeugt und bei erneutem Teilen wiederverwendet.
 - Serveränderungen seit dem letzten Sync werden beim Freigeben nicht still überschrieben; in diesem Fall ist zuerst ein normaler Sync erforderlich.
 - Neuer Web-Endpunkt `POST /api/v1/share/recipe` und öffentliche Route `/share/recipe/{token}`.
+- Öffentliche Einzelrezepte sind nur noch per Freigabe-Token erreichbar; direkte `view.php?id=...`-Aufrufe sind für Gäste gesperrt.
+- Detail-API, Bilder und öffentliche `.broccoli`-Downloads prüfen ebenfalls den Rezept- oder Sammlungs-Token.
+- Rezepte innerhalb geteilter Sammlungen verwenden tokenisierte URLs `/share/{token}/recipe/{id}`.
+- Auch die Weboberfläche erzeugt beim Teilen eines einzelnen Rezepts einen dauerhaften Freigabe-Token statt eines öffentlichen ID-Links.
 
 
 ## 2.0.3 — 2026-10-07
