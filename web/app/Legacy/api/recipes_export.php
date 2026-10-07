@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/session_bootstrap.php';
+require_once __DIR__ . '/../lib/share_access.php';
 
 function make_slug(string $title): string {
     // alle Buchstaben/Ziffern (inkl. Umlaute) erlauben, Rest -> "_"
@@ -51,7 +52,6 @@ function sanitize_broccoli_data(array $data): array
 
 
 try {
-	$userId = require_login();
 	if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 		http_response_code(405);
 		header('Content-Type: application/json; charset=utf-8');
@@ -83,21 +83,51 @@ try {
 	}
 
 	$db = get_db();
-	$userId = require_login();
+	$currentUserId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+	$collectionToken = trim((string)($_POST['collection_token'] ?? ''));
 
 	$placeholders = implode(',', array_fill(0, count($ids), '?'));
-	$sql = "SELECT id, title, json_data, image_path
-	        FROM recipes
-	        WHERE id IN ($placeholders)
-	          AND owner_id = ?
-	        ORDER BY id";
 
-	$stmt = $db->prepare($sql);
-	$params = $ids;
-	$params[] = $userId;
-	$stmt->execute($params);
+	if ($collectionToken !== '') {
+		$sql = "SELECT r.id, r.title, r.json_data, r.image_path
+		        FROM recipes r
+		        JOIN collection_recipes cr ON cr.recipe_id = r.id
+		        JOIN collections c ON c.id = cr.collection_id
+		        WHERE r.id IN ($placeholders)
+		          AND c.token = ?
+		        ORDER BY r.id";
+		$stmt = $db->prepare($sql);
+		$params = $ids;
+		$params[] = $collectionToken;
+		$stmt->execute($params);
+		$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-	$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+		if (count($rows) !== count($ids)) {
+			http_response_code(404);
+			header('Content-Type: application/json; charset=utf-8');
+			echo json_encode(['error' => 'Ein oder mehrere Rezepte sind nicht Teil dieser Freigabe.'], JSON_UNESCAPED_UNICODE);
+			exit;
+		}
+	} else {
+		if ($currentUserId === null) {
+			http_response_code(401);
+			header('Content-Type: application/json; charset=utf-8');
+			echo json_encode(['error' => 'not logged in'], JSON_UNESCAPED_UNICODE);
+			exit;
+		}
+
+		$sql = "SELECT id, title, json_data, image_path
+		        FROM recipes
+		        WHERE id IN ($placeholders)
+		          AND owner_id = ?
+		        ORDER BY id";
+		$stmt = $db->prepare($sql);
+		$params = $ids;
+		$params[] = $currentUserId;
+		$stmt->execute($params);
+		$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+	}
+
 	if (!$rows) {
 		http_response_code(404);
 		header('Content-Type: application/json; charset=utf-8');
