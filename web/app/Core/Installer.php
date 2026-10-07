@@ -15,7 +15,11 @@ final class Installer
 
         $databasePath = storage_path('database/brassica.sqlite');
         if (!is_file($databasePath)) {
-            self::createDatabase($databasePath);
+            if (LegacyV1Migrator::hasLegacyInstallation()) {
+                LegacyV1Migrator::migrate($databasePath);
+            } else {
+                self::createDatabase($databasePath);
+            }
         }
     }
 
