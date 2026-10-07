@@ -68,7 +68,11 @@ return static function (Router $router): void {
     $router->any('/api/collections/recipes', static fn() => LegacyController::api('collections_recipes'));
     $router->any('/api/collections/import', static fn() => LegacyController::api('collections_import'));
 
-    // Brassica Android Sync API v1 (HTTP Basic über den bestehenden Benutzeraccount).
+    // Brassica Android Sync API v1.
+    // Die App bezieht einmalig per Benutzer/Passwort einen Geräte-Key und
+    // verwendet danach Bearer-Authentifizierung.
+    $router->post('/api/v1/sync/token', static fn() => SyncController::issueToken());
+    $router->post('/api/v1/sync/token/revoke', static fn() => SyncController::revokeToken());
     $router->get('/api/v1/sync/manifest', static fn() => SyncController::manifest());
     $router->get('/api/v1/sync/recipes/{uuid}', static fn(array $p) => SyncController::recipe($p));
     $router->post('/api/v1/sync/apply', static fn() => SyncController::apply());
