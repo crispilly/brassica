@@ -606,7 +606,7 @@ public class BrassicaSyncService {
         }
 
         List<String> out = new ArrayList<>(unique);
-        out.sort(String.CASE_INSENSITIVE_ORDER);
+        out.sort(String::compareTo);
         return out;
     }
 
