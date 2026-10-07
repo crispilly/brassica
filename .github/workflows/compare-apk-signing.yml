@@ -1,0 +1,23 @@
+name: Compare APK signing certificates
+
+on:
+  push:
+    paths:
+      - '.github/workflows/compare-apk-signing.yml'
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: android-actions/setup-android@v3
+      - name: Download released APKs
+        run: |
+          curl -LfsS -o v201.apk https://github.com/crispilly/brassica/releases/download/v2.0.1/Brassica-Android-2.0.1.apk
+          curl -LfsS -o v202.apk https://github.com/crispilly/brassica/releases/download/v2.0.2/Brassica-Android-2.0.2.apk
+      - name: Print signing certificates
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          echo "=== 2.0.1 ==="
+          "$APKSIGNER" verify --print-certs v201.apk
+          echo "=== 2.0.2 ==="
+          "$APKSIGNER" verify --print-certs v202.apk
