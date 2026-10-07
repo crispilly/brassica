@@ -51,12 +51,14 @@ return static function (Router $router): void {
     $router->any('/api/recipe_clone_to_me.php', static fn() => LegacyController::api('recipe_clone_to_me'));
     $router->any('/api/recipe_get.php', static fn() => LegacyController::api('recipe_get'));
     $router->any('/api/recipe_save.php', static fn() => LegacyController::api('recipe_save'));
+    $router->any('/api/recipe_share.php', static fn() => LegacyController::api('recipe_share'));
     $router->any('/api/recipes_delete.php', static fn() => LegacyController::api('recipes_delete'));
     $router->any('/api/recipes_export.php', static fn() => LegacyController::api('recipes_export'));
     $router->any('/api/recipes_list.php', static fn() => LegacyController::api('recipes_list'));
     $router->any('/api/recipes', static fn() => LegacyController::api('recipes_list'));
     $router->any('/api/recipe', static fn() => LegacyController::api('recipe_get'));
     $router->any('/api/recipe/save', static fn() => LegacyController::api('recipe_save'));
+    $router->any('/api/recipe/share', static fn() => LegacyController::api('recipe_share'));
     $router->any('/api/recipes/delete', static fn() => LegacyController::api('recipes_delete'));
     $router->any('/api/recipes/export', static fn() => LegacyController::api('recipes_export'));
     $router->any('/api/import', static fn() => LegacyController::api('import_broccoli'));
@@ -86,6 +88,7 @@ return static function (Router $router): void {
     $router->get('/archives/{id}', static function (array $p): void { $_GET['archive_id'] = $p['id']; LegacyController::page('archive_view'); });
     $router->get('/share/{token}', static function (array $p): void { $_GET['token'] = $p['token']; LegacyController::page('index_open'); });
     $router->get('/share/recipe/{token}', static fn(array $p) => PublicShareController::recipe($p));
+    $router->get('/share/{token}/recipe/{id}', static fn(array $p) => PublicShareController::collectionRecipe($p));
     $router->get('/admin/users/{id}/recipes', static function (array $p): void { $_GET['user_id'] = $p['id']; LegacyController::page('admin_user_recipes'); });
     $router->get('/admin/collections/{id}/recipes', static function (array $p): void { $_GET['collection_id'] = $p['id']; LegacyController::page('admin_collection_recipes'); });
 
