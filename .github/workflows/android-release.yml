@@ -2,9 +2,6 @@ name: Android signed release
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - '.github/workflows/android-release.yml'
 
 jobs:
   fdroid-release:
