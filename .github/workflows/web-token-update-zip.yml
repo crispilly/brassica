@@ -31,7 +31,9 @@ jobs:
             public/assets/js/app.js \
             public/assets/js/view.js \
             public/assets/js/index_open.js \
-            config/routes.php
+            public/assets/css/app.css \
+            config/routes.php \
+            VERSION
 
       - uses: actions/upload-artifact@v4
         with:
