@@ -119,7 +119,7 @@ final class SyncController
                 ];
             }
 
-            return ['version' => 2, 'items' => $items];
+            return ['version' => 3, 'items' => $items];
         });
     }
 
@@ -502,13 +502,41 @@ final class SyncController
 
     private static function contentHash(array $row, array $cats): string
     {
-        return hash(
-            'sha256',
-            json_encode(
-                self::canonicalData(self::rowToData($row), $cats),
-                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-            )
-        );
+        $data = self::canonicalData(self::rowToData($row), $cats);
+
+        // Serializer-unabhängiges Format: UTF-8-Byte-Längen + Rohdaten.
+        // Dadurch erzeugen PHP und Android auch bei Unicode, Zeilenumbrüchen
+        // und Sonderzeichen garantiert dieselbe Hash-Eingabe.
+        $buffer = "brassica-sync-v3\0";
+
+        foreach ([
+            'title',
+            'description',
+            'directions',
+            'ingredients',
+            'notes',
+            'nutritionalValues',
+            'preparationTime',
+            'servings',
+            'source',
+        ] as $field) {
+            $value = (string)$data[$field];
+            $buffer .= $field . "\0" . strlen($value) . "\0" . $value . "\0";
+        }
+
+        $buffer .= 'favorite' . "\0" . ($data['favorite'] ? '1' : '0') . "\0";
+
+        $categoryNames = [];
+        foreach ($data['categories'] as $category) {
+            $categoryNames[] = (string)($category['name'] ?? '');
+        }
+
+        $buffer .= 'categories' . "\0" . count($categoryNames) . "\0";
+        foreach ($categoryNames as $categoryName) {
+            $buffer .= strlen($categoryName) . "\0" . $categoryName . "\0";
+        }
+
+        return hash('sha256', $buffer);
     }
 
     private static function imageHash(?string $stored): ?string
