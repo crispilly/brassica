@@ -62,3 +62,7 @@ Brassica Web 2.0 benötigt keine Shell-Installation. Nach dem Entpacken und Setz
 Für Brassica Web 1.0–1.2 gibt es eine automatische, shellfreie Migration beim ersten Start von V2. Datenbank, Bilder und gespeicherte Importarchive werden aus dem alten `data/`-Ordner in den neuen privaten `storage/`-Bereich kopiert.
 
 Anleitung: [Migration 1.x → 2.x](docs/MIGRATION_V1_TO_V2.md)
+
+## Informationsseite
+
+Die überarbeiteten deutschen und englischen Texte für die öffentliche Brassica-Infoseite liegen unter [`website/`](website/). Sie beschreiben Web 2.x, Android 2.x, Downloads und die V1→V2-Migration.
