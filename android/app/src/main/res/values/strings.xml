@@ -110,9 +110,9 @@
     <string name="system_default">System default</string>
     <string name="privacy_policy">Privacy policy</string>
     <string name="privacy_policy_summary">Learn more about how we protect your personal data.</string>
-    <string name="privacy_policy_url" translatable="false">https://github.com/flauschtrud/broccoli-privacy-policy</string>
+    <string name="privacy_policy_url" translatable="false">https://github.com/crispilly/brassica/blob/main/PRIVACY.md</string>
     <string name="github" translatable="false">GitHub</string>
-    <string name="link_to_github" translatable="false">https://github.com/flauschtrud/broccoli</string>
+    <string name="link_to_github" translatable="false">https://github.com/crispilly/brassica</string>
     <string name="open_source_licenses">Open source licenses</string>
     <string name="open_source_licenses_text">License details for open source software</string>
 
