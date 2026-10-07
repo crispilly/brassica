@@ -79,6 +79,9 @@ public class RecipeDetailsActivity extends AppCompatActivity {
     @Inject
     ShareableRecipeBuilder shareableRecipeBuilder;
 
+    @Inject
+    BrassicaSyncService syncService;
+
     private RecipeDetailsViewModel viewModel;
     private ActivityRecipeDetailsBinding binding;
     private Menu menu;
@@ -267,9 +270,72 @@ public class RecipeDetailsActivity extends AppCompatActivity {
         startActivity(Intent.createChooser(shareIntent, null));
     }
 
+    ActivityResultLauncher<String> saveAsBroccoliResultLauncher = registerForActivityResult(
+            new ActivityResultContracts.CreateDocument("application/broccoli"),
+            uri -> {
+                if (uri == null) {
+                    return;
+                }
+
+                try {
+                    shareRecipeAsFileService.saveAsFile(binding.getRecipe(), uri);
+                    Toast.makeText(
+                            this,
+                            getString(R.string.recipe_saved_as_broccoli_message),
+                            Toast.LENGTH_SHORT
+                    ).show();
+                } catch (IOException e) {
+                    Log.e(getClass().getName(), e.getMessage(), e);
+                    Toast.makeText(
+                            this,
+                            getString(R.string.recipe_could_not_be_exported_message),
+                            Toast.LENGTH_LONG
+                    ).show();
+                }
+            });
+
     ActivityResultLauncher<Intent> shareAsFileResultLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> viewModel.getExportUri().ifPresent(exportUri -> getContentResolver().delete(exportUri, null,  null)));
+
+    public void saveAsBroccoli(MenuItem item) {
+        saveAsBroccoliResultLauncher.launch(
+                shareRecipeAsFileService.suggestedFileName(binding.getRecipe())
+        );
+    }
+
+    public void shareWebLink(MenuItem item) {
+        Toast.makeText(
+                this,
+                getString(R.string.share_web_link_creating),
+                Toast.LENGTH_SHORT
+        ).show();
+
+        syncService.shareWebLink(binding.getRecipe())
+                .whenComplete((url, error) -> runOnUiThread(() -> {
+                    if (error != null) {
+                        Throwable cause = error;
+                        while (cause.getCause() != null) {
+                            cause = cause.getCause();
+                        }
+                        String message = cause.getMessage();
+                        if (message == null || message.trim().isEmpty()) {
+                            message = getString(R.string.share_web_link_failed);
+                        }
+                        Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+                        return;
+                    }
+
+                    Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                    shareIntent.putExtra(Intent.EXTRA_SUBJECT, binding.getRecipe().getTitle());
+                    shareIntent.putExtra(Intent.EXTRA_TEXT, url);
+                    shareIntent.setType("text/plain");
+                    startActivity(Intent.createChooser(
+                            shareIntent,
+                            getString(R.string.share_web_link_action)
+                    ));
+                }));
+    }
 
     public void shareAsFile(MenuItem item) {
         try {
