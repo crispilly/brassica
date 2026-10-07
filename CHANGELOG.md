@@ -8,7 +8,6 @@
 - Der Server speichert nur den SHA-256-Hash des Geräte-Keys.
 - Konflikterkennung auf echten Drei-Wege-Abgleich umgestellt: lokal / Server / letzter gemeinsamer Sync-Stand.
 - Kanonische Hash-Bildung für leere Felder und Kategorien vereinheitlicht.
-- Rezeptbilder sind Bestandteil des Sync-Hashes.
 - Nach Upload und Download wird der übertragene Stand per Hash geprüft.
 - Sichtbarer Fortschrittsbalken mit Anzahl und Rezeptname.
 - Deutliche Abschlussmeldung nach erfolgreichem Sync.
