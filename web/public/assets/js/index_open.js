@@ -6,6 +6,7 @@ let currentPage = 1;
 let currentCategory = '';
 let currentSearch = '';
 let totalPages = 1;
+let currentCollectionToken = '';
 
 // i18n-Helper für diese Seite
 function iomsg(key, fallback) {
@@ -38,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	const token = mainEl.dataset.token || '';
+	currentCollectionToken = token;
 	if (!token) {
 		console.error('index_open.js: Kein Token in data-token gefunden.');
 		return;
@@ -475,7 +477,13 @@ function exportSelectedRecipes() {
 	input.name = 'ids';
 	input.value = ids.join(',');
 
+	const tokenInput = document.createElement('input');
+	tokenInput.type = 'hidden';
+	tokenInput.name = 'collection_token';
+	tokenInput.value = currentCollectionToken;
+
 	form.appendChild(input);
+	form.appendChild(tokenInput);
 	document.body.appendChild(form);
 	form.submit();
 	document.body.removeChild(form);
@@ -485,7 +493,8 @@ function exportSelectedRecipes() {
  * Detailansicht öffnen.
  */
 function openRecipeView(id) {
-	window.location.href = 'view.php?id=' + encodeURIComponent(id);
+	if (!currentCollectionToken) return;
+	window.location.href = '/share/' + encodeURIComponent(currentCollectionToken) + '/recipe/' + encodeURIComponent(id);
 }
 
 /**
