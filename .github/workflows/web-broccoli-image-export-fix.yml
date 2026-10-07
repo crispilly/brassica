@@ -1,0 +1,24 @@
+name: Build Brassica broccoli image export fix ZIP
+
+on:
+  push:
+    paths:
+      - '.github/workflows/web-broccoli-image-export-fix.yml'
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build fix ZIP
+        run: |
+          set -euo pipefail
+          cd web
+          zip -r ../Brassica-Web-2.0.4-Broccoli-Image-Export-Fix.zip \
+            app/Legacy/public/editor.php \
+            app/Legacy/api/recipes_export.php
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Brassica-Web-2.0.4-Broccoli-Image-Export-Fix
+          path: Brassica-Web-2.0.4-Broccoli-Image-Export-Fix.zip
+          if-no-files-found: error
