@@ -1,0 +1,84 @@
+name: Android signed release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fdroid-release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    env:
+      BRASSICA_KEYSTORE_PATH: ${{ github.workspace }}/android/brassica-release.jks
+      BRASSICA_KEYSTORE_PASSWORD: ${{ secrets.BRASSICA_KEYSTORE_PASSWORD }}
+      BRASSICA_KEY_ALIAS: ${{ secrets.BRASSICA_KEY_ALIAS }}
+      BRASSICA_KEY_PASSWORD: ${{ secrets.BRASSICA_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject forbidden branding
+        working-directory: .
+        run: |
+          set -euo pipefail
+          if grep -RIni --exclude-dir=.git --exclude='*.jks' 'digitaldruckshop' android web docs README.md CHANGELOG.md 2>/dev/null; then
+            echo "Forbidden branding found."
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare Android SDK
+        run: |
+          SDKMANAGER=/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Restore signing keystore
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${{ secrets.BRASSICA_KEYSTORE_BASE64 }}"
+          printf '%s' "${{ secrets.BRASSICA_KEYSTORE_BASE64 }}" | base64 --decode > "$BRASSICA_KEYSTORE_PATH"
+          chmod 600 "$BRASSICA_KEYSTORE_PATH"
+
+      - name: Verify signing secrets
+        run: |
+          set -euo pipefail
+          test -s "$BRASSICA_KEYSTORE_PATH"
+          test -n "$BRASSICA_KEYSTORE_PASSWORD"
+          test -n "$BRASSICA_KEY_ALIAS"
+          test -n "$BRASSICA_KEY_PASSWORD"
+
+      - name: Build signed F-Droid release APK
+        run: ./gradlew clean assembleFdroidRelease
+
+      - name: Verify APK signature
+        run: |
+          set -euo pipefail
+          APK=$(find app/build/outputs/apk/fdroid/release -name '*.apk' -type f | head -n1)
+          test -n "$APK"
+          /usr/local/lib/android/sdk/build-tools/37.0.0/apksigner verify --verbose --print-certs "$APK"
+          cp "$APK" "../Brassica-Android-$(tr -d '\r\n' < ../web/VERSION).apk"
+
+      - name: SHA256
+        working-directory: .
+        run: sha256sum Brassica-Android-*.apk > SHA256SUMS-Android.txt
+
+      - name: Remove decoded keystore
+        if: always()
+        run: rm -f "$BRASSICA_KEYSTORE_PATH"
+
+      - name: Upload signed APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: brassica-signed-release-apk
+          path: |
+            Brassica-Android-*.apk
+            SHA256SUMS-Android.txt
+          if-no-files-found: error
