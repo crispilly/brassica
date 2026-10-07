@@ -113,6 +113,25 @@ jobs:
 
           curl -fsS "http://127.0.0.1:18081$SHARE_PATH" >/tmp/brassica-shared-recipe.html
 
+          RID=$(php -r '
+            require "web/app/bootstrap.php";
+            $pdo = Brassica\Core\Database::connection();
+            echo (int)$pdo->query("SELECT id FROM recipes WHERE title=\"Freigabe Test\" LIMIT 1")->fetchColumn();
+          ')
+          test "$RID" -gt 0
+
+          SHARE_TOKEN=${SHARE_PATH##*/}
+
+          # Direkte ID-Aufrufe dürfen für Gäste nicht mehr funktionieren.
+          test "$(curl -sS -o /tmp/direct-view.html -w '%{http_code}' "http://127.0.0.1:18081/view.php?id=$RID")" = "404"
+          test "$(curl -sS -o /tmp/direct-api.json -w '%{http_code}' "http://127.0.0.1:18081/api/recipe_get.php?id=$RID")" = "404"
+          test "$(curl -sS -o /tmp/direct-download.bin -w '%{http_code}' "http://127.0.0.1:18081/editor.php?id=$RID&download=1")" = "404"
+
+          # Derselbe Datensatz muss über den gültigen Freigabe-Token erreichbar sein.
+          curl -fsS "http://127.0.0.1:18081/api/recipe_get.php?id=$RID&share_token=$SHARE_TOKEN" >/tmp/token-recipe.json
+          curl -fsS "http://127.0.0.1:18081/editor.php?id=$RID&download=1&share_token=$SHARE_TOKEN" >/tmp/token-recipe.broccoli
+          test -s /tmp/token-recipe.broccoli
+
           php -r '
             require "web/app/bootstrap.php";
             $pdo = Brassica\Core\Database::connection();
