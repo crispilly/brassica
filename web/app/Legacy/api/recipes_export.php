@@ -135,8 +135,6 @@ try {
 		exit;
 	}
 
-	$imagesBase = realpath(storage_path('images'));
-
 	// Für Dateiname / Exportmodus
 	$isSingle   = count($rows) === 1;
 	$firstTitle = $rows[0]['title'] ?? 'rezept';
@@ -180,17 +178,16 @@ try {
  		$imageFullPath = null;
  
  		if ($imagePathRel) {
- 			$fullPath = realpath(__DIR__ . '/../' . $imagePathRel);
+ 			$fullPath = legacy_image_file((string)$imagePathRel);
  			if ($fullPath !== false
- 				&& $imagesBase !== false
- 				&& strpos($fullPath, $imagesBase) === 0
+
  				&& is_file($fullPath)
  			) {
  				$imageBasename        = basename($fullPath);
  				$data['imageName']    = $imageBasename;
  				$imageFullPath        = $fullPath;
  			} else {
- 				$imagePathRel = null;
+ 				unset($data['imageName']);
  			}
  		}
  
@@ -248,17 +245,16 @@ try {
  			$imageFullPath = null;
  
  			if ($imagePathRel) {
- 				$fullPath = realpath(__DIR__ . '/../' . $imagePathRel);
+ 				$fullPath = legacy_image_file((string)$imagePathRel);
  				if ($fullPath !== false
- 					&& $imagesBase !== false
- 					&& strpos($fullPath, $imagesBase) === 0
+
  					&& is_file($fullPath)
  				) {
  					$imageBasename     = basename($fullPath);
  					$data['imageName'] = $imageBasename;
  					$imageFullPath     = $fullPath;
  				} else {
- 					$imagePathRel = null;
+ 					unset($data['imageName']);
  				}
  			}
  
