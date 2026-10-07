@@ -215,8 +215,7 @@ final class SyncController
             }
         }
         $cats = array_values($cats);
-        natcasesort($cats);
-        $cats = array_values($cats);
+        sort($cats, SORT_STRING);
 
         $now = (new \DateTimeImmutable())->format(DATE_ATOM);
         $stmt = $db->prepare('SELECT id,image_path,created_at FROM recipes WHERE owner_id=:uid AND uuid=:uuid LIMIT 1');
@@ -484,8 +483,7 @@ final class SyncController
     private static function canonicalData(array $data, array $cats): array
     {
         $names = array_values(array_unique(array_map('strval', $cats)));
-        natcasesort($names);
-        $names = array_values($names);
+        sort($names, SORT_STRING);
 
         return [
             'title' => (string)($data['title'] ?? ''),
