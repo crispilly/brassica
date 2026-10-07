@@ -9,7 +9,10 @@ jobs:
   compare:
     runs-on: ubuntu-latest
     steps:
-      - uses: android-actions/setup-android@v3
+      - name: Prepare Android build tools
+        run: |
+          SDKMANAGER=/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager
+          "$SDKMANAGER" "build-tools;37.0.0"
       - name: Download released APKs
         run: |
           curl -LfsS -o v201.apk https://github.com/crispilly/brassica/releases/download/v2.0.1/Brassica-Android-2.0.1.apk
