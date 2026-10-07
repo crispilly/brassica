@@ -19,10 +19,30 @@ android {
         versionName "2.0.4"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
+    def brassicaKeystorePath = System.getenv("BRASSICA_KEYSTORE_PATH")
+    def brassicaKeystorePassword = System.getenv("BRASSICA_KEYSTORE_PASSWORD")
+    def brassicaKeyAlias = System.getenv("BRASSICA_KEY_ALIAS")
+    def brassicaKeyPassword = System.getenv("BRASSICA_KEY_PASSWORD")
+
+    signingConfigs {
+        if (brassicaKeystorePath && brassicaKeystorePassword && brassicaKeyAlias && brassicaKeyPassword) {
+            brassicaRelease {
+                storeFile file(brassicaKeystorePath)
+                storePassword brassicaKeystorePassword
+                keyAlias brassicaKeyAlias
+                keyPassword brassicaKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+
+            if (signingConfigs.findByName("brassicaRelease") != null) {
+                signingConfig signingConfigs.brassicaRelease
+            }
         }
     }
     bundle {
