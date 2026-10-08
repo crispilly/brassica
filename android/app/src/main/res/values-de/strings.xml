@@ -1004,4 +1004,17 @@
     <string name="share_web_link_creating">Web-Link wird erstellt…</string>
     <string name="share_web_link_failed">Der Web-Link konnte nicht erstellt werden.</string>
     <string name="recipe_saved_as_broccoli_message">Rezept wurde als .broccoli gespeichert.</string>
+    <string name="share_qr_code_action">QR-Code teilen</string>
+    <string name="qr_code_accessibility">QR-Code für den Rezeptlink</string>
+    <string name="qr_code_failed">QR-Code konnte nicht erzeugt werden.</string>
+    <string name="import_from_file">Datei importieren</string>
+    <string name="import_from_qr">QR-Code scannen</string>
+    <string name="scan_recipe_qr_prompt">QR-Code eines geteilten Brassica-Rezepts oder einer Collection scannen</string>
+    <string name="qr_import_invalid">Der QR-Code enthält keinen gültigen Brassica-Freigabelink.</string>
+    <string name="qr_import_failed">Import über QR-Code fehlgeschlagen.</string>
+    <string name="select_recipes_import">Rezepte zum Importieren auswählen</string>
+    <string name="share_method_title">Wie teilen?</string>
+    <string name="share_file_action">Als Datei teilen</string>
+    <string name="save_file_action">Als Datei speichern</string>
+
 </resources>
