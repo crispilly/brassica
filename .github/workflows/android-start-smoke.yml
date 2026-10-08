@@ -18,11 +18,23 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Enable KVM
+        working-directory: .
+        run: |
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
       - name: Prepare Android SDK
         run: |
           SDKMANAGER=/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0" "emulator" "system-images;android-30;aosp_atd;x86_64"
+          "$SDKMANAGER" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
       - uses: gradle/actions/setup-gradle@v4
       - name: Run startup smoke test
-        run: ./gradlew pixel2api30FdroidDebugAndroidTest --stacktrace
+        uses: ReactiveCircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          working-directory: android
+          script: ./gradlew connectedFdroidDebugAndroidTest --stacktrace
