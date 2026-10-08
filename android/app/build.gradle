@@ -15,7 +15,7 @@ android {
         applicationId "de.crispilly.brassica"
         minSdkVersion 26
         targetSdk 37
-        versionCode 2000500 // Brassica 2.0.5
+        versionCode 2000500 // Brassica 2.0.5 release
         versionName "2.0.5"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
