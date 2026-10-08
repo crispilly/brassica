@@ -1,0 +1,28 @@
+name: Android start smoke test
+
+on:
+  push:
+    paths:
+      - '.github/workflows/android-start-smoke.yml'
+      - 'android/app/src/androidTest/java/com/flauschcode/broccoli/MainActivityLaunchTest.java'
+
+jobs:
+  start-smoke:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare Android SDK
+        run: |
+          SDKMANAGER=/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0" "emulator" "system-images;android-30;aosp_atd;x86_64"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Run startup smoke test
+        run: ./gradlew pixel2api30FdroidDebugAndroidTest --stacktrace
