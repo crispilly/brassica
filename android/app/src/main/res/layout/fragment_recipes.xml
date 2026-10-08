@@ -1,61 +1,104 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:theme="@style/Theme.Broccoli">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:background="?attr/colorSecondaryToolbar"
         android:theme="@style/ThemeOverlay.Broccoli.AppBarOverlay">
 
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar_recipes"
+        <LinearLayout
+            android:id="@+id/recipe_selection_bar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorSecondaryToolbar"
-            app:popupTheme="@style/ThemeOverlay.Broccoli.PopupOverlay">
+            android:layout_height="wrap_content"
+            android:minHeight="@dimen/min_height_for_accessibility"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/recipe_selection"
+                android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
 
             <Spinner
                 android:id="@+id/spinner"
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:minHeight="@dimen/min_height_for_accessibility"
-                android:contentDescription="@string/categories"
+                android:contentDescription="@string/recipe_selection"
                 app:popupTheme="@style/ThemeOverlay.Broccoli.PopupOverlay" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip"
                 style="@style/Widget.MaterialComponents.Chip.Entry"
-                app:ensureMinTouchTargetSize="true"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:visibility="gone"
+                app:ensureMinTouchTargetSize="true" />
 
-        </androidx.appcompat.widget.Toolbar>
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/category_multi_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
+            android:minHeight="@dimen/min_height_for_accessibility"
             android:gravity="center_vertical"
-            android:paddingHorizontal="8dp"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="8dp"
             android:paddingBottom="6dp">
-            <Button
+
+            <TextView
                 android:id="@+id/category_multi_button"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="@string/all_categories" />
-            <RadioGroup
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:minHeight="@dimen/min_height_for_accessibility"
+                android:text="@string/all_categories"
+                android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
                 android:id="@+id/category_match_mode"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
-                <RadioButton android:id="@+id/category_mode_or" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/category_or" android:checked="true" />
-                <RadioButton android:id="@+id/category_mode_and" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/category_and" />
-            </RadioGroup>
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/category_mode_or"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:checkable="true"
+                    android:minWidth="64dp"
+                    android:text="@string/category_or" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/category_mode_and"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checkable="true"
+                    android:minWidth="64dp"
+                    android:text="@string/category_and" />
+
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+
         </LinearLayout>
 
     </com.google.android.material.appbar.AppBarLayout>
@@ -75,36 +118,37 @@
             android:orientation="vertical"
             android:layout_gravity="center">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingBottom="@dimen/text_margin"
-            android:textAppearance="@style/TextAppearance.AppCompat.Large"
-            android:text="@string/no_recipes_found" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingBottom="@dimen/text_margin"
+                android:textAppearance="@style/TextAppearance.AppCompat.Large"
+                android:text="@string/no_recipes_found" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="@style/TextAppearance.AppCompat.Large"
-            android:text="@string/create_a_recipe_prompt"
-            app:drawableStartCompat="@drawable/ic_plus_24"
-            android:drawablePadding="@dimen/drawable_padding"
-            app:drawableTint="?attr/colorPrimary" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.AppCompat.Large"
+                android:text="@string/create_a_recipe_prompt"
+                app:drawableStartCompat="@drawable/ic_plus_24"
+                android:drawablePadding="@dimen/drawable_padding"
+                app:drawableTint="?attr/colorPrimary" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="@style/TextAppearance.AppCompat.Large"
-            android:text="@string/import_from_the_web_prompt"
-            app:drawableStartCompat="@drawable/ic_menu_share_24dp"
-            android:drawablePadding="@dimen/drawable_padding"
-            app:drawableTint="?attr/colorPrimary" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.AppCompat.Large"
+                android:text="@string/import_from_the_web_prompt"
+                app:drawableStartCompat="@drawable/ic_menu_share_24dp"
+                android:drawablePadding="@dimen/drawable_padding"
+                app:drawableTint="?attr/colorPrimary" />
 
         </LinearLayout>
 
     </LinearLayout>
 
-    <include layout="@layout/recipes_list"
+    <include
+        layout="@layout/recipes_list"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior" />
