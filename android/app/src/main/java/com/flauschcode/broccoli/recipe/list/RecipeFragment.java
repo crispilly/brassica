@@ -40,7 +40,10 @@ import com.flauschcode.broccoli.recipe.Recipe;
 import com.flauschcode.broccoli.recipe.RecipeRepository;
 import com.flauschcode.broccoli.recipe.crud.CreateAndEditRecipeActivity;
 import com.flauschcode.broccoli.recipe.details.RecipeDetailsActivity;
+import com.flauschcode.broccoli.recipe.sharing.QrCodeDialog;
+import com.flauschcode.broccoli.recipe.sharing.ShareRecipeAsFileService;
 import com.flauschcode.broccoli.recipe.transfer.RecipeFileService;
+import com.flauschcode.broccoli.sync.BrassicaSyncService;
 import com.flauschcode.broccoli.seasons.SeasonalFood;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -72,6 +75,8 @@ public class RecipeFragment extends Fragment implements AdapterView.OnItemSelect
 
     @Inject ViewModelProvider.Factory viewModelFactory;
     @Inject RecipeFileService recipeFileService;
+    @Inject ShareRecipeAsFileService shareRecipeAsFileService;
+    @Inject BrassicaSyncService syncService;
 
     private RecipeViewModel viewModel;
     private MenuItem searchItem;
