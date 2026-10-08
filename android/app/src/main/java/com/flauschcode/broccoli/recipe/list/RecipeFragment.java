@@ -3,6 +3,7 @@ package com.flauschcode.broccoli.recipe.list;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -43,7 +44,16 @@ import com.flauschcode.broccoli.recipe.transfer.RecipeFileService;
 import com.flauschcode.broccoli.seasons.SeasonalFood;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.journeyapps.barcodescanner.ScanContract;
+import com.journeyapps.barcodescanner.ScanOptions;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -52,6 +62,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
 
@@ -74,6 +85,14 @@ public class RecipeFragment extends Fragment implements AdapterView.OnItemSelect
     private final Set<Long> selectedCategoryIds = new HashSet<>();
     private List<Recipe> pendingExportRecipes = new ArrayList<>();
     private boolean suppressSpinner = false;
+
+    private final ActivityResultLauncher<ScanOptions> qrScanner = registerForActivityResult(
+            new ScanContract(),
+            result -> {
+                if (result.getContents() != null) {
+                    importFromQrLink(result.getContents().trim());
+                }
+            });
 
     private final ActivityResultLauncher<String[]> importLauncher = registerForActivityResult(
             new ActivityResultContracts.OpenDocument(), uri -> {
@@ -195,7 +214,7 @@ public class RecipeFragment extends Fragment implements AdapterView.OnItemSelect
     private void setUpMenu(Toolbar toolbar){
         toolbar.inflateMenu(R.menu.recipes);
         toolbar.setOnMenuItemClickListener(item -> {
-            if(item.getItemId()==R.id.action_import_file){ importLauncher.launch(new String[]{"application/broccoli","application/octet-stream","application/zip"}); return true; }
+            if(item.getItemId()==R.id.action_import_file){ showImportMethodDialog(); return true; }
             if(item.getItemId()==R.id.action_export_file){ showExportSelection(); return true; }
             return false;
         });
@@ -205,6 +224,166 @@ public class RecipeFragment extends Fragment implements AdapterView.OnItemSelect
         searchItem.setActionView(searchView);
         viewModel.getFilterName().observe(getViewLifecycleOwner(), filterName->searchView.setQueryHint(getString(R.string.search_in,filterName.toUpperCase())));
         searchView.setOnQueryTextListener(this);
+    }
+
+
+    private void showImportMethodDialog() {
+        String[] options = {
+                getString(R.string.import_from_file),
+                getString(R.string.import_from_qr)
+        };
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.import_file)
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        importLauncher.launch(new String[]{"application/broccoli","application/octet-stream","application/zip"});
+                    } else {
+                        ScanOptions scanOptions = new ScanOptions();
+                        scanOptions.setPrompt(getString(R.string.scan_recipe_qr_prompt));
+                        scanOptions.setBeepEnabled(false);
+                        scanOptions.setOrientationLocked(false);
+                        qrScanner.launch(scanOptions);
+                    }
+                })
+                .show();
+    }
+
+    private void importFromQrLink(String value) {
+        Uri uri = Uri.parse(value);
+        String scheme = uri.getScheme();
+        if (scheme == null || (!"https".equalsIgnoreCase(scheme) && !"http".equalsIgnoreCase(scheme))) {
+            Toast.makeText(requireContext(), R.string.qr_import_invalid, Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        List<String> segments = uri.getPathSegments();
+        if (segments.size() == 3
+                && "share".equals(segments.get(0))
+                && "recipe".equals(segments.get(1))) {
+            String downloadUrl = value.replaceAll("/+$", "") + "/download";
+            downloadAndImport(downloadUrl);
+            return;
+        }
+
+        if (segments.size() == 2 && "share".equals(segments.get(0))) {
+            loadCollectionForImport(uri, segments.get(1));
+            return;
+        }
+
+        if (segments.size() == 4
+                && "share".equals(segments.get(0))
+                && "recipe".equals(segments.get(2))) {
+            String downloadUrl = value.replaceAll("/+$", "") + "/download";
+            downloadAndImport(downloadUrl);
+            return;
+        }
+
+        Toast.makeText(requireContext(), R.string.qr_import_invalid, Toast.LENGTH_LONG).show();
+    }
+
+    private void loadCollectionForImport(Uri source, String token) {
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                URL url = new URL(source.getScheme(), source.getHost(), source.getPort(),
+                        "/share/" + token + "/recipes.json");
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(30000);
+                connection.setRequestProperty("Accept", "application/json");
+                if (connection.getResponseCode() != 200) {
+                    throw new IllegalStateException("HTTP " + connection.getResponseCode());
+                }
+
+                byte[] data;
+                try (InputStream in = connection.getInputStream()) {
+                    data = in.readAllBytes();
+                }
+
+                com.fasterxml.jackson.databind.JsonNode root =
+                        new com.fasterxml.jackson.databind.ObjectMapper().readTree(data);
+                List<Long> ids = new ArrayList<>();
+                List<String> titles = new ArrayList<>();
+                for (com.fasterxml.jackson.databind.JsonNode item : root.path("items")) {
+                    ids.add(item.path("id").asLong());
+                    titles.add(item.path("title").asText());
+                }
+                return new CollectionImportData(ids, titles);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }).whenComplete((data, error) -> requireActivity().runOnUiThread(() -> {
+            if (error != null || data == null || data.ids.isEmpty()) {
+                Toast.makeText(requireContext(), R.string.qr_import_failed, Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            boolean[] checked = new boolean[data.ids.size()];
+            new AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.select_recipes_import)
+                    .setMultiChoiceItems(data.titles.toArray(new String[0]), checked,
+                            (dialog, which, isChecked) -> checked[which] = isChecked)
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                        List<String> urls = new ArrayList<>();
+                        for (int i = 0; i < checked.length; i++) {
+                            if (checked[i]) {
+                                urls.add(source.getScheme() + "://" + source.getAuthority()
+                                        + "/share/" + token + "/recipe/" + data.ids.get(i) + "/download");
+                            }
+                        }
+                        downloadAndImportAll(urls);
+                    })
+                    .show();
+        }));
+    }
+
+    private void downloadAndImport(String url) {
+        downloadAndImportAll(java.util.Collections.singletonList(url));
+    }
+
+    private void downloadAndImportAll(List<String> urls) {
+        if (urls.isEmpty()) return;
+
+        CompletableFuture.runAsync(() -> {
+            int imported = 0;
+            try {
+                for (String url : urls) {
+                    HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+                    connection.setConnectTimeout(15000);
+                    connection.setReadTimeout(30000);
+                    if (connection.getResponseCode() != 200) {
+                        throw new IllegalStateException("HTTP " + connection.getResponseCode());
+                    }
+
+                    File target = File.createTempFile("brassica_qr_", ".broccoli", requireContext().getCacheDir());
+                    try (InputStream in = connection.getInputStream();
+                         FileOutputStream out = new FileOutputStream(target)) {
+                        in.transferTo(out);
+                    }
+
+                    RecipeFileService.ImportResult result = recipeFileService.importFrom(Uri.fromFile(target)).get();
+                    imported += result.count;
+                    target.delete();
+                }
+
+                int count = imported;
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(requireContext(), getString(R.string.import_success, count), Toast.LENGTH_LONG).show());
+            } catch (Exception e) {
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(requireContext(), R.string.qr_import_failed, Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
+    private static class CollectionImportData {
+        final List<Long> ids;
+        final List<String> titles;
+
+        CollectionImportData(List<Long> ids, List<String> titles) {
+            this.ids = ids;
+            this.titles = titles;
+        }
     }
 
     private void setUpSpinner(){
