@@ -46,6 +46,7 @@ import com.flauschcode.broccoli.recipe.RecipeRepository;
 import com.flauschcode.broccoli.recipe.cooking.CookingAssistantActivity;
 import com.flauschcode.broccoli.recipe.crud.CreateAndEditRecipeActivity;
 import com.flauschcode.broccoli.recipe.directions.DirectionBuilder;
+import com.flauschcode.broccoli.recipe.sharing.QrCodeDialog;
 import com.flauschcode.broccoli.recipe.sharing.ShareRecipeAsFileService;
 import com.flauschcode.broccoli.recipe.sharing.ShareableRecipe;
 import com.flauschcode.broccoli.recipe.sharing.ShareableRecipeBuilder;
@@ -149,6 +150,10 @@ public class RecipeDetailsActivity extends AppCompatActivity {
 
         MenuItem item = binding.getRecipe().isFavorite()? menu.findItem(R.id.action_details_unlike) : menu.findItem(R.id.action_details_like);
         item.setVisible(true);
+
+        boolean onlineSharingAvailable = hasOnlineSharing();
+        menu.findItem(R.id.action_details_share_web_link).setVisible(onlineSharingAvailable);
+        menu.findItem(R.id.action_details_share_qr_code).setVisible(onlineSharingAvailable);
 
         return true;
     }
@@ -271,6 +276,16 @@ public class RecipeDetailsActivity extends AppCompatActivity {
         startActivity(Intent.createChooser(shareIntent, null));
     }
 
+    private boolean hasOnlineSharing() {
+        String server = syncService.getServer();
+        String user = syncService.getUser();
+        return server != null
+                && !server.trim().isEmpty()
+                && user != null
+                && !user.trim().isEmpty()
+                && syncService.hasSyncKey(server, user);
+    }
+
     ActivityResultLauncher<String> saveAsBroccoliResultLauncher = registerForActivityResult(
             new ActivityResultContracts.CreateDocument("application/broccoli"),
             uri -> {
@@ -303,6 +318,23 @@ public class RecipeDetailsActivity extends AppCompatActivity {
         saveAsBroccoliResultLauncher.launch(
                 shareRecipeAsFileService.suggestedFileName(binding.getRecipe())
         );
+    }
+
+    public void shareQrCode(MenuItem item) {
+        Toast.makeText(
+                this,
+                getString(R.string.share_web_link_creating),
+                Toast.LENGTH_SHORT
+        ).show();
+
+        syncService.shareWebLink(binding.getRecipe())
+                .whenComplete((url, error) -> runOnUiThread(() -> {
+                    if (error != null) {
+                        Toast.makeText(this, R.string.share_web_link_failed, Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    QrCodeDialog.show(this, getString(R.string.share_qr_code_action), url);
+                }));
     }
 
     public void shareWebLink(MenuItem item) {
