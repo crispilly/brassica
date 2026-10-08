@@ -2,6 +2,12 @@ name: Android signed release
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feature/import-share-qr
+    paths:
+      - 'android/app/build.gradle'
+      - 'web/VERSION'
 
 jobs:
   fdroid-release:
