@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
-    <item android:id="@+id/action_import_file" android:icon="@drawable/ic_import_export_24dp" android:title="@string/import_file" app:showAsAction="ifRoom" />
+    <item android:id="@+id/action_import_file" android:icon="@drawable/ic_import_download" android:title="@string/import_file" app:showAsAction="ifRoom" />
     <item android:id="@+id/action_export_file" android:icon="@drawable/ic_menu_share_24dp" android:title="@string/export_selected" app:showAsAction="ifRoom" />
     <item android:id="@+id/action_search" android:icon="@drawable/ic_action_search_24dp" android:title="@string/search" app:actionViewClass="androidx.appcompat.widget.SearchView" app:showAsAction="ifRoom|collapseActionView" />
 </menu>
