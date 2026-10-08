@@ -1242,4 +1242,17 @@
     <string name="share_web_link_creating">Creating Web link…</string>
     <string name="share_web_link_failed">The Web link could not be created.</string>
     <string name="recipe_saved_as_broccoli_message">Recipe saved as .broccoli.</string>
+    <string name="share_qr_code_action">Share QR code</string>
+    <string name="qr_code_accessibility">QR code for the recipe link</string>
+    <string name="qr_code_failed">QR code could not be created.</string>
+    <string name="import_from_file">Import file</string>
+    <string name="import_from_qr">Scan QR code</string>
+    <string name="scan_recipe_qr_prompt">Scan the QR code of a shared Brassica recipe or collection</string>
+    <string name="qr_import_invalid">The QR code does not contain a valid Brassica share link.</string>
+    <string name="qr_import_failed">QR code import failed.</string>
+    <string name="select_recipes_import">Select recipes to import</string>
+    <string name="share_method_title">How do you want to share?</string>
+    <string name="share_file_action">Share as file</string>
+    <string name="save_file_action">Save as file</string>
+
 </resources>
