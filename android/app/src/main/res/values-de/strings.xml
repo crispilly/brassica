@@ -976,6 +976,7 @@
     <string name="wild_fennel_terms">Wilder Fenchel, wilde Fenchel</string>
     <string name="create_pdf">PDF erstellen</string>
 
+    <string name="recipe_selection">Rezeptauswahl:</string>
     <string name="all_categories">Alle Kategorien</string>
     <string name="categories_selected">%1$d Kategorien gewählt</string>
     <string name="category_or">ODER</string>
