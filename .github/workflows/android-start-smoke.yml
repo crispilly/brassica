@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/android-start-smoke.yml'
       - 'android/app/src/androidTest/java/com/flauschcode/broccoli/MainActivityLaunchTest.java'
+      - 'android/app/src/main/java/com/flauschcode/broccoli/recipe/list/RecipeFragment.java'
 
 jobs:
   start-smoke:
