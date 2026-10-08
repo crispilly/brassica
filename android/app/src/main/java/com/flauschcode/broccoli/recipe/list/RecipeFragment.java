@@ -11,8 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.RadioGroup;
+import android.widget.TextView;
 import android.widget.Spinner;
 import android.widget.Toast;
 
@@ -47,6 +46,7 @@ import com.flauschcode.broccoli.recipe.sharing.ShareRecipeAsFileService;
 import com.flauschcode.broccoli.recipe.transfer.RecipeFileService;
 import com.flauschcode.broccoli.sync.BrassicaSyncService;
 import com.flauschcode.broccoli.seasons.SeasonalFood;
+import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.zxing.integration.android.IntentIntegrator;
@@ -86,8 +86,8 @@ public class RecipeFragment extends Fragment implements AdapterView.OnItemSelect
     private Spinner spinner;
     private Chip seasonalIngredientChip;
     private View categoryMultiBar;
-    private Button categoryMultiButton;
-    private RadioGroup categoryMatchMode;
+    private TextView categoryMultiButton;
+    private MaterialButtonToggleGroup categoryMatchMode;
     private final List<Category> availableCategories = new ArrayList<>();
     private final Set<Long> selectedCategoryIds = new HashSet<>();
     private List<Recipe> pendingExportRecipes = new ArrayList<>();
@@ -142,7 +142,7 @@ public class RecipeFragment extends Fragment implements AdapterView.OnItemSelect
         viewModel = new ViewModelProvider(this, viewModelFactory).get(RecipeViewModel.class);
         viewModel.getRecipes().observe(getViewLifecycleOwner(), adapter::submitList);
 
-        Toolbar toolbar = root.findViewById(R.id.toolbar_recipes);
+        Toolbar toolbar = requireActivity().findViewById(R.id.toolbar);
         setUpMenu(toolbar);
         spinner = root.findViewById(R.id.spinner);
         setUpSpinner();
@@ -219,6 +219,7 @@ public class RecipeFragment extends Fragment implements AdapterView.OnItemSelect
     }
 
     private void setUpMenu(Toolbar toolbar){
+        toolbar.getMenu().clear();
         toolbar.inflateMenu(R.menu.recipes);
         toolbar.setOnMenuItemClickListener(item -> {
             if(item.getItemId()==R.id.action_import_file){ showImportMethodDialog(); return true; }
@@ -403,8 +404,8 @@ public class RecipeFragment extends Fragment implements AdapterView.OnItemSelect
     private void setUpMultiCategoryFilter(){
         viewModel.getCategories().observe(getViewLifecycleOwner(), categories->{availableCategories.clear();availableCategories.addAll(categories);updateCategoryButton();});
         categoryMultiButton.setOnClickListener(v->showCategoryDialog());
-        categoryMatchMode.setOnCheckedChangeListener((group,checkedId)->{
-            if(selectedCategoryIds.isEmpty())return;
+        categoryMatchMode.addOnButtonCheckedListener((group,checkedId,isChecked)->{
+            if(!isChecked || selectedCategoryIds.isEmpty())return;
             viewModel.setFilterCategories(getSelectedCategories(), checkedId==R.id.category_mode_and?RecipeRepository.CategoryMatchMode.AND:RecipeRepository.CategoryMatchMode.OR);
         });
     }
@@ -419,7 +420,7 @@ public class RecipeFragment extends Fragment implements AdapterView.OnItemSelect
                 .setPositiveButton(android.R.string.ok,(d,w)->{
                     selectedCategoryIds.clear();for(int i=0;i<checked.length;i++)if(checked[i])selectedCategoryIds.add(availableCategories.get(i).getCategoryId());
                     if(selectedCategoryIds.isEmpty()){viewModel.setFilterCategory(viewModel.getCategoryAll());viewModel.setFilterName(viewModel.getCategoryAll().getName());}
-                    else {suppressSpinner=true;spinner.setSelection(0,false);spinner.post(() -> suppressSpinner=false);RecipeRepository.CategoryMatchMode mode=categoryMatchMode.getCheckedRadioButtonId()==R.id.category_mode_and?RecipeRepository.CategoryMatchMode.AND:RecipeRepository.CategoryMatchMode.OR;viewModel.setFilterCategories(getSelectedCategories(),mode);viewModel.setFilterName(getString(R.string.categories_selected,selectedCategoryIds.size()));}
+                    else {suppressSpinner=true;spinner.setSelection(0,false);spinner.post(() -> suppressSpinner=false);RecipeRepository.CategoryMatchMode mode=categoryMatchMode.getCheckedButtonId()==R.id.category_mode_and?RecipeRepository.CategoryMatchMode.AND:RecipeRepository.CategoryMatchMode.OR;viewModel.setFilterCategories(getSelectedCategories(),mode);viewModel.setFilterName(getString(R.string.categories_selected,selectedCategoryIds.size()));}
                     updateCategoryButton();
                 }).show();
     }
@@ -520,6 +521,14 @@ public class RecipeFragment extends Fragment implements AdapterView.OnItemSelect
         }));
     }
     private String sanitize(String value){String s=value==null?"recipe":value.replaceAll("[^a-zA-Z0-9._-]","_");return s.isEmpty()?"recipe":s;}
+
+    @Override
+    public void onDestroyView() {
+        Toolbar toolbar = requireActivity().findViewById(R.id.toolbar);
+        toolbar.setOnMenuItemClickListener(null);
+        toolbar.getMenu().clear();
+        super.onDestroyView();
+    }
 
     private Category getPreferredCategory(){
         SharedPreferences prefs=PreferenceManager.getDefaultSharedPreferences(requireActivity());
