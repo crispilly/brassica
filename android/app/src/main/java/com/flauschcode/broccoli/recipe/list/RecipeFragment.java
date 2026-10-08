@@ -142,8 +142,13 @@ public class RecipeFragment extends Fragment implements AdapterView.OnItemSelect
         viewModel = new ViewModelProvider(this, viewModelFactory).get(RecipeViewModel.class);
         viewModel.getRecipes().observe(getViewLifecycleOwner(), adapter::submitList);
 
-        Toolbar toolbar = requireActivity().findViewById(R.id.toolbar);
-        setUpMenu(toolbar);
+        root.post(() -> {
+            if (!isAdded()) return;
+            Toolbar toolbar = requireActivity().findViewById(R.id.toolbar);
+            if (toolbar != null) {
+                setUpMenu(toolbar);
+            }
+        });
         spinner = root.findViewById(R.id.spinner);
         setUpSpinner();
 
@@ -169,8 +174,13 @@ public class RecipeFragment extends Fragment implements AdapterView.OnItemSelect
 
         requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), new OnBackPressedCallback(true) {
             @Override public void handleOnBackPressed() {
-                if (!searchView.isIconified()) toolbar.collapseActionView();
-                else { setEnabled(false); requireActivity().onBackPressed(); }
+                Toolbar toolbar = requireActivity().findViewById(R.id.toolbar);
+                if (searchView != null && !searchView.isIconified() && toolbar != null) {
+                    toolbar.collapseActionView();
+                } else {
+                    setEnabled(false);
+                    requireActivity().onBackPressed();
+                }
             }
         });
         return root;
@@ -525,8 +535,10 @@ public class RecipeFragment extends Fragment implements AdapterView.OnItemSelect
     @Override
     public void onDestroyView() {
         Toolbar toolbar = requireActivity().findViewById(R.id.toolbar);
-        toolbar.setOnMenuItemClickListener(null);
-        toolbar.getMenu().clear();
+        if (toolbar != null) {
+            toolbar.setOnMenuItemClickListener(null);
+            toolbar.getMenu().clear();
+        }
         super.onDestroyView();
     }
 
