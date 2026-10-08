@@ -88,7 +88,10 @@ return static function (Router $router): void {
     $router->get('/archives/{id}', static function (array $p): void { $_GET['archive_id'] = $p['id']; LegacyController::page('archive_view'); });
     $router->get('/share/{token}', static function (array $p): void { $_GET['token'] = $p['token']; LegacyController::page('index_open'); });
     $router->get('/share/recipe/{token}', static fn(array $p) => PublicShareController::recipe($p));
+    $router->get('/share/recipe/{token}/download', static fn(array $p) => PublicShareController::recipeDownload($p));
+    $router->get('/share/{token}/recipes.json', static fn(array $p) => PublicShareController::collectionRecipes($p));
     $router->get('/share/{token}/recipe/{id}', static fn(array $p) => PublicShareController::collectionRecipe($p));
+    $router->get('/share/{token}/recipe/{id}/download', static fn(array $p) => PublicShareController::collectionRecipeDownload($p));
     $router->get('/admin/users/{id}/recipes', static function (array $p): void { $_GET['user_id'] = $p['id']; LegacyController::page('admin_user_recipes'); });
     $router->get('/admin/collections/{id}/recipes', static function (array $p): void { $_GET['collection_id'] = $p['id']; LegacyController::page('admin_collection_recipes'); });
 
