@@ -1214,6 +1214,7 @@
     <string name="create_pdf">Create PDF</string>
 
 
+    <string name="recipe_selection">Recipe selection:</string>
     <string name="all_categories">All categories</string>
     <string name="categories_selected">%1$d categories selected</string>
     <string name="category_or">OR</string>
