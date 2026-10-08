@@ -38,6 +38,11 @@
         android:onClick="shareWebLink"
         app:showAsAction="never" />
     <item
+        android:id="@+id/action_details_share_qr_code"
+        android:title="@string/share_qr_code_action"
+        android:onClick="shareQrCode"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_details_edit"
         android:icon="@drawable/ic_menu_edit_24dp"
         android:title="@string/edit_action"
