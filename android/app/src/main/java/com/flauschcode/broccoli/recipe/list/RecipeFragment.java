@@ -20,6 +20,7 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.core.content.FileProvider;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
@@ -33,6 +34,7 @@ import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.flauschcode.broccoli.BR;
+import com.flauschcode.broccoli.BuildConfig;
 import com.flauschcode.broccoli.R;
 import com.flauschcode.broccoli.RecyclerViewAdapter;
 import com.flauschcode.broccoli.category.Category;
@@ -429,13 +431,92 @@ public class RecipeFragment extends Fragment implements AdapterView.OnItemSelect
         viewModel.findAllRecipes().whenComplete((recipes,error)->requireActivity().runOnUiThread(()->{
             if(error!=null||recipes==null||recipes.isEmpty()){Toast.makeText(requireContext(),R.string.export_failed,Toast.LENGTH_LONG).show();return;}
             String[] titles=recipes.stream().map(Recipe::getTitle).toArray(String[]::new); boolean[] checked=new boolean[recipes.size()];
-            new AlertDialog.Builder(requireContext()).setTitle(R.string.select_recipes_export).setMultiChoiceItems(titles,checked,(d,w,c)->checked[w]=c)
+            new AlertDialog.Builder(requireContext()).setTitle(R.string.select_recipes_export).setMultiChoiceItems(titles,checked,(d,w,isChecked)->checked[w]=isChecked)
                     .setNegativeButton(android.R.string.cancel,null).setPositiveButton(android.R.string.ok,(d,w)->{
                         pendingExportRecipes=new ArrayList<>();for(int i=0;i<checked.length;i++)if(checked[i])pendingExportRecipes.add(recipes.get(i));
                         if(pendingExportRecipes.isEmpty())return;
-                        String filename=pendingExportRecipes.size()==1 ? sanitize(pendingExportRecipes.get(0).getTitle())+".broccoli" : "EXPORT_"+new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date())+".broccoli-archive";
-                        exportLauncher.launch(filename);
+                        showShareMethodSelection(new ArrayList<>(pendingExportRecipes));
                     }).show();
+        }));
+    }
+
+    private void showShareMethodSelection(List<Recipe> recipes) {
+        List<String> actions = new ArrayList<>();
+        actions.add(getString(R.string.save_file_action));
+        actions.add(getString(R.string.share_file_action));
+
+        boolean online = recipes.size() == 1 && hasOnlineSharing();
+        if (online) {
+            actions.add(getString(R.string.share_web_link_action));
+            actions.add(getString(R.string.share_qr_code_action));
+        }
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.share_method_title)
+                .setItems(actions.toArray(new String[0]), (dialog, which) -> {
+                    if (which == 0) {
+                        pendingExportRecipes = new ArrayList<>(recipes);
+                        String filename=recipes.size()==1 ? sanitize(recipes.get(0).getTitle())+".broccoli" : "EXPORT_"+new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date())+".broccoli-archive";
+                        exportLauncher.launch(filename);
+                    } else if (which == 1) {
+                        shareSelectedFiles(recipes);
+                    } else if (which == 2 && online) {
+                        shareSelectedWebLink(recipes.get(0), false);
+                    } else if (which == 3 && online) {
+                        shareSelectedWebLink(recipes.get(0), true);
+                    }
+                })
+                .show();
+    }
+
+    private boolean hasOnlineSharing() {
+        String server = syncService.getServer();
+        String user = syncService.getUser();
+        return server != null && !server.trim().isEmpty()
+                && user != null && !user.trim().isEmpty()
+                && syncService.hasSyncKey(server, user);
+    }
+
+    private void shareSelectedFiles(List<Recipe> recipes) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                String name = recipes.size()==1
+                        ? sanitize(recipes.get(0).getTitle()) + ".broccoli"
+                        : "EXPORT_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date()) + ".broccoli-archive";
+                File file = new File(requireContext().getCacheDir(), name);
+                recipeFileService.exportTo(Uri.fromFile(file), recipes).get();
+                Uri contentUri = FileProvider.getUriForFile(requireContext(), BuildConfig.APPLICATION_ID + ".fileprovider", file);
+
+                requireActivity().runOnUiThread(() -> {
+                    Intent intent = new Intent(Intent.ACTION_SEND);
+                    intent.putExtra(Intent.EXTRA_STREAM, contentUri);
+                    intent.setType(recipes.size()==1 ? "application/broccoli" : "application/octet-stream");
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(Intent.createChooser(intent, getString(R.string.share_file_action)));
+                });
+            } catch (Exception e) {
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(requireContext(), R.string.export_failed, Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
+    private void shareSelectedWebLink(Recipe recipe, boolean qr) {
+        Toast.makeText(requireContext(), R.string.share_web_link_creating, Toast.LENGTH_SHORT).show();
+        syncService.shareWebLink(recipe).whenComplete((url, error) -> requireActivity().runOnUiThread(() -> {
+            if (error != null) {
+                Toast.makeText(requireContext(), R.string.share_web_link_failed, Toast.LENGTH_LONG).show();
+                return;
+            }
+            if (qr) {
+                QrCodeDialog.show(requireActivity(), getString(R.string.share_qr_code_action), url);
+            } else {
+                Intent intent = new Intent(Intent.ACTION_SEND);
+                intent.putExtra(Intent.EXTRA_SUBJECT, recipe.getTitle());
+                intent.putExtra(Intent.EXTRA_TEXT, url);
+                intent.setType("text/plain");
+                startActivity(Intent.createChooser(intent, getString(R.string.share_web_link_action)));
+            }
         }));
     }
     private String sanitize(String value){String s=value==null?"recipe":value.replaceAll("[^a-zA-Z0-9._-]","_");return s.isEmpty()?"recipe":s;}
