@@ -44,7 +44,13 @@ jobs:
           set -euo pipefail
           . fdroidserver-env/bin/activate
           fdroid --version
-          fdroid build --verbose 2>&1 | tee fdroid-build.log
+          mkdir -p fdroid-work/metadata
+          cp docs/fdroid/de.crispilly.brassica.yml fdroid-work/metadata/de.crispilly.brassica.yml
+          cd fdroid-work
+          fdroid readmeta
+          fdroid lint de.crispilly.brassica
+          fdroid build de.crispilly.brassica --verbose 2>&1 | tee ../fdroid-build.log
+          cd ..
           if grep -Eq 'Could not build app|[1-9][0-9]* build failed|ERROR:' fdroid-build.log; then
             echo "F-Droid reported a build failure."
             exit 1
