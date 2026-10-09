@@ -1,0 +1,42 @@
+name: F-Droid build test
+
+on:
+  push:
+    paths:
+      - '.fdroid.yml'
+      - '.github/workflows/fdroid-build-test.yml'
+
+jobs:
+  fdroid-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install F-Droid tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y fdroidserver
+
+      - name: Prepare Android SDK
+        run: |
+          set -euo pipefail
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
+
+      - name: Run F-Droid build
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          set -euo pipefail
+          fdroid build --verbose
