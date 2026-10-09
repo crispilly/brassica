@@ -19,11 +19,14 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install F-Droid tools
+      - name: Install current F-Droid tools
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y fdroidserver
+          sudo apt-get install -y fdroidserver python3-venv
+          python3 -m venv --system-site-packages fdroidserver-env
+          ./fdroidserver-env/bin/pip install --upgrade pip
+          ./fdroidserver-env/bin/pip install git+https://gitlab.com/fdroid/fdroidserver.git
 
       - name: Prepare Android SDK
         run: |
@@ -39,6 +42,8 @@ jobs:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
           set -euo pipefail
+          . fdroidserver-env/bin/activate
+          fdroid --version
           fdroid build --verbose 2>&1 | tee fdroid-build.log
           if grep -Eq 'Could not build app|[1-9][0-9]* build failed|ERROR:' fdroid-build.log; then
             echo "F-Droid reported a build failure."
