@@ -672,7 +672,7 @@ body.auth-body {
 
 /* Sichtbare Web-Version – bei Versionswechsel zusammen mit web/VERSION aktualisieren. */
 body::after {
-	content: "Brassica 2.0.4";
+	content: "Brassica 2.0.6";
 	position: fixed;
 	right: 0.6rem;
 	bottom: 0.45rem;
