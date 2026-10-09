@@ -55,14 +55,14 @@ jobs:
           test -n "$DIGEST"
           echo "SIGNING_CERT_SHA256=$DIGEST" | tee signing-cert.env
           echo "### Signing certificate SHA-256" >> "$GITHUB_STEP_SUMMARY"
-          echo "`$DIGEST`" >> "$GITHUB_STEP_SUMMARY"
+          echo "$DIGEST" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Compare reproducible APK contents
         run: |
           set -euo pipefail
           python3 -m pip install --user apksigcopier==1.1.1
           export PATH="$HOME/.local/bin:$PATH"
-          export APKSIGNER=/usr/local/lib/android/sdk/build-tools/37.0.0/apksigner
+          export PATH="/usr/local/lib/android/sdk/build-tools/37.0.0:$HOME/.local/bin:$PATH"
           apksigcopier compare --unsigned \
             Brassica-Android-2.0.6-signed.apk \
             Brassica-Android-2.0.6-unsigned.apk
