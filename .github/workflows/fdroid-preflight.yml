@@ -51,7 +51,7 @@ jobs:
           set -euo pipefail
           APKSIGNER=/usr/local/lib/android/sdk/build-tools/37.0.0/apksigner
           "$APKSIGNER" verify --verbose --print-certs Brassica-Android-2.0.6-signed.apk | tee cert.txt
-          DIGEST=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' cert.txt | head -n1)
+          DIGEST=$(sed -n 's/^V2 Signer: certificate SHA-256 digest: //p' cert.txt | head -n1)
           test -n "$DIGEST"
           echo "SIGNING_CERT_SHA256=$DIGEST" | tee signing-cert.env
           echo "### Signing certificate SHA-256" >> "$GITHUB_STEP_SUMMARY"
