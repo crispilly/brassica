@@ -36,6 +36,13 @@ jobs:
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
 
+      - name: Prepare Gradle 9.5.0 for fdroidserver
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 https://services.gradle.org/distributions/gradle-9.5.0-bin.zip -o /tmp/gradle.zip
+          sudo unzip -q /tmp/gradle.zip -d /opt
+          test -x /opt/gradle-9.5.0/bin/gradle
+
       - name: Run F-Droid build
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
@@ -47,6 +54,12 @@ jobs:
           git clone --depth=1 https://gitlab.com/fdroid/fdroiddata.git fdroid-work
           cp docs/fdroid/de.crispilly.brassica.yml fdroid-work/metadata/de.crispilly.brassica.yml
           cd fdroid-work
+          cat > config.yml <<'EOF'
+          sdk_path: /usr/local/lib/android/sdk
+          gradle: /opt/gradle-9.5.0/bin/gradle
+          serverwebroot: /tmp/fdroid-web
+          EOF
+          mkdir -p /tmp/fdroid-web
           fdroid readmeta
           fdroid lint de.crispilly.brassica
           fdroid build de.crispilly.brassica --verbose 2>&1 | tee ../fdroid-build.log
