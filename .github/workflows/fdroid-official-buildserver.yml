@@ -1,0 +1,43 @@
+name: F-Droid official buildserver test
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fdroid-official-buildserver.yml'
+
+jobs:
+  buildserver:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare fdroiddata and fdroidserver
+        run: |
+          set -euo pipefail
+          git clone --depth=1 https://gitlab.com/fdroid/fdroiddata.git fdroiddata
+          git clone --depth=1 https://gitlab.com/fdroid/fdroidserver.git fdroidserver
+          cp docs/fdroid/de.crispilly.brassica.yml fdroiddata/metadata/de.crispilly.brassica.yml
+          sudo chown -R 1000:1000 fdroiddata fdroidserver
+
+      - name: Validate and build in official F-Droid buildserver
+        run: |
+          set -euo pipefail
+          docker pull registry.gitlab.com/fdroid/fdroidserver:buildserver
+          docker run --rm \
+            -u vagrant \
+            -v "$PWD/fdroiddata:/build" \
+            -v "$PWD/fdroidserver:/home/vagrant/fdroidserver" \
+            registry.gitlab.com/fdroid/fdroidserver:buildserver \
+            bash -lc '
+              set -euo pipefail
+              . /etc/profile
+              export PATH="$HOME/fdroidserver:$PATH"
+              export PYTHONPATH="$HOME/fdroidserver"
+              export JAVA_HOME=$(java -XshowSettings:properties -version 2>&1 >/dev/null | awk -F= "/java.home/ {gsub(/^[ \t]+|[ \t]+$/, \"\", \$2); print \$2; exit}")
+              cd /build
+              fdroid readmeta
+              fdroid rewritemeta de.crispilly.brassica
+              fdroid checkupdates --allow-dirty de.crispilly.brassica
+              fdroid lint de.crispilly.brassica
+              fdroid build de.crispilly.brassica --verbose
+            '
