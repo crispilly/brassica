@@ -21,6 +21,7 @@ Builds:
     subdir: android
     gradle:
       - fdroid
+    output: app/build/outputs/apk/fdroid/release/*.apk
 
 AllowedAPKSigningKeys: 6a7dc30b8ca7b74be4d5cb11354c16bef358c172fa7ec3703b61b8e6a5b159c2
 
