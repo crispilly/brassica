@@ -6,23 +6,9 @@ SourceCode: https://github.com/crispilly/brassica
 IssueTracker: https://github.com/crispilly/brassica/issues
 Changelog: https://github.com/crispilly/brassica/releases
 
-Name: Brassica
-Summary: Free recipe manager with import, categories, cooking mode and optional sync
-Description: |-
-  Brassica is a free and open source recipe manager for Android.
-
-  Recipes are stored locally on the device. The app supports recipe images,
-  ingredients, directions, notes, nutrition information, favorites, seasonal
-  recipes and categories. Multiple categories can be combined using OR or AND
-  matching.
-
-  Brassica can import and export .broccoli and .broccoli-archive files.
-  Public recipe shares can be imported using links or QR codes.
-
-  The app works fully offline without an account or server. Synchronization
-  with a Brassica Web installation is optional.
-
-  Brassica is a fork of the free Broccoli app.
+AuthorName: Crispilly
+AuthorWebSite: https://brassica.crispilly.de
+AutoName: Brassica
 
 RepoType: git
 Repo: https://github.com/crispilly/brassica.git
@@ -39,6 +25,6 @@ Builds:
 AllowedAPKSigningKeys: 6a7dc30b8ca7b74be4d5cb11354c16bef358c172fa7ec3703b61b8e6a5b159c2
 
 AutoUpdateMode: Version
-UpdateCheckMode: Tags
+UpdateCheckMode: Tags ^v[\d.]+$
 CurrentVersion: 2.0.6
 CurrentVersionCode: 2000600
