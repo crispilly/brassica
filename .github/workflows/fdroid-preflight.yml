@@ -110,7 +110,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
-            set -euo pipefail
+            set -eu
             cd android
             ./gradlew installFdroidDebug
             adb shell am force-stop de.crispilly.brassica
