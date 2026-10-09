@@ -136,4 +136,6 @@ jobs:
             exit 0
           fi
           git commit -m "Add F-Droid store graphics"
+          git fetch origin feature/import-share-qr
+          git rebase origin/feature/import-share-qr
           git push origin HEAD:feature/import-share-qr
