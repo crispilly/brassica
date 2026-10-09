@@ -39,4 +39,9 @@ jobs:
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
           set -euo pipefail
-          fdroid build --verbose
+          fdroid build --verbose 2>&1 | tee fdroid-build.log
+          if grep -Eq 'Could not build app|[1-9][0-9]* build failed|ERROR:' fdroid-build.log; then
+            echo "F-Droid reported a build failure."
+            exit 1
+          fi
+          grep -Eq 'Successfully built|build succeeded|1 build succeeded|Finished' fdroid-build.log
