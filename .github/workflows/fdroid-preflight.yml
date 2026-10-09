@@ -1,0 +1,139 @@
+name: F-Droid preflight
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fdroid-preflight.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  reproducible:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v2.0.6
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare Android SDK
+        run: |
+          set -euo pipefail
+          SDKMANAGER=/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build unsigned F-Droid release from v2.0.6
+        working-directory: android
+        run: |
+          set -euo pipefail
+          ./gradlew clean assembleFdroidRelease
+          APK=$(find app/build/outputs/apk/fdroid/release -name '*.apk' -type f | head -n1)
+          test -n "$APK"
+          cp "$APK" ../Brassica-Android-2.0.6-unsigned.apk
+
+      - name: Download published signed APK
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 \
+            https://github.com/crispilly/brassica/releases/download/v2.0.6/Brassica-Android-2.0.6.apk \
+            -o Brassica-Android-2.0.6-signed.apk
+
+      - name: Verify signing certificate
+        run: |
+          set -euo pipefail
+          APKSIGNER=/usr/local/lib/android/sdk/build-tools/37.0.0/apksigner
+          "$APKSIGNER" verify --verbose --print-certs Brassica-Android-2.0.6-signed.apk | tee cert.txt
+          DIGEST=$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' cert.txt | head -n1)
+          test -n "$DIGEST"
+          echo "SIGNING_CERT_SHA256=$DIGEST" | tee signing-cert.env
+          echo "### Signing certificate SHA-256" >> "$GITHUB_STEP_SUMMARY"
+          echo "`$DIGEST`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Compare reproducible APK contents
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user apksigcopier==1.1.1
+          export PATH="$HOME/.local/bin:$PATH"
+          export APKSIGNER=/usr/local/lib/android/sdk/build-tools/37.0.0/apksigner
+          apksigcopier compare --unsigned \
+            Brassica-Android-2.0.6-signed.apk \
+            Brassica-Android-2.0.6-unsigned.apk
+          echo "### Reproducible build" >> "$GITHUB_STEP_SUMMARY"
+          echo "PASS: unsigned source build matches the published signed APK." >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fdroid-preflight-results
+          path: |
+            cert.txt
+            signing-cert.env
+          if-no-files-found: error
+
+  store-graphics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/import-share-qr
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare metadata graphics folders
+        run: |
+          set -euo pipefail
+          for lang in de-DE en-US; do
+            mkdir -p "fastlane/metadata/android/$lang/images/phoneScreenshots"
+            cp web/public/assets/icons/favicon-256.png "fastlane/metadata/android/$lang/images/icon.png"
+          done
+
+      - name: Enable KVM
+        run: |
+          if [ -e /dev/kvm ]; then sudo chmod 666 /dev/kvm; fi
+
+      - name: Capture app screenshots
+        uses: ReactiveCircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            set -euo pipefail
+            cd android
+            ./gradlew installFdroidDebug
+            adb shell am force-stop de.crispilly.brassica
+            adb shell monkey -p de.crispilly.brassica -c android.intent.category.LAUNCHER 1
+            sleep 4
+            adb exec-out screencap -p > ../fastlane/metadata/android/de-DE/images/phoneScreenshots/1.png
+            cp ../fastlane/metadata/android/de-DE/images/phoneScreenshots/1.png ../fastlane/metadata/android/en-US/images/phoneScreenshots/1.png
+            adb shell input tap 45 105
+            sleep 2
+            adb exec-out screencap -p > ../fastlane/metadata/android/de-DE/images/phoneScreenshots/2.png
+            cp ../fastlane/metadata/android/de-DE/images/phoneScreenshots/2.png ../fastlane/metadata/android/en-US/images/phoneScreenshots/2.png
+            test -s ../fastlane/metadata/android/de-DE/images/phoneScreenshots/1.png
+            test -s ../fastlane/metadata/android/de-DE/images/phoneScreenshots/2.png
+
+      - name: Commit generated icon and screenshots
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fastlane/metadata/android/*/images
+          if git diff --cached --quiet; then
+            echo "No graphics changes."
+            exit 0
+          fi
+          git commit -m "Add F-Droid store graphics"
+          git push origin HEAD:feature/import-share-qr
