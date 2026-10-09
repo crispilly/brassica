@@ -109,9 +109,9 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
+          working-directory: android
           script: |
             set -eu
-            cd android
             ./gradlew installFdroidDebug
             adb shell am force-stop de.crispilly.brassica
             adb shell monkey -p de.crispilly.brassica -c android.intent.category.LAUNCHER 1
