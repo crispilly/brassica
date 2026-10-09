@@ -32,7 +32,7 @@ Builds:
   - versionName: 2.0.6
     versionCode: 2000600
     commit: 28b3051d43f8acc5b2f9bf75c9f7f8698db15e5b
-    subdir: android
+    subdir: android/app
     gradle:
       - fdroid
 
