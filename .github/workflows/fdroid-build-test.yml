@@ -44,7 +44,7 @@ jobs:
           set -euo pipefail
           . fdroidserver-env/bin/activate
           fdroid --version
-          mkdir -p fdroid-work/metadata
+          git clone --depth=1 https://gitlab.com/fdroid/fdroiddata.git fdroid-work
           cp docs/fdroid/de.crispilly.brassica.yml fdroid-work/metadata/de.crispilly.brassica.yml
           cd fdroid-work
           fdroid readmeta
