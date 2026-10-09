@@ -1,0 +1,17 @@
+Brassica ist eine freie Rezeptverwaltung für Android.
+
+Rezepte werden lokal auf dem Gerät gespeichert und können mit Bildern, Zutaten, Zubereitungsschritten, Notizen, Nährwerten und Kategorien verwaltet werden.
+
+Funktionen:
+• Rezepte erstellen, bearbeiten, suchen und als Favoriten markieren
+• Mehrere Kategorien gleichzeitig filtern, wahlweise mit ODER- oder UND-Verknüpfung
+• Saisonkalender und saisonale Rezeptfilter
+• Kochmodus mit angepasster Darstellung
+• Import und Export von .broccoli- und .broccoli-archive-Dateien
+• Teilen einzelner Rezepte als Datei
+• QR-Code- und Link-Import öffentlicher Rezeptfreigaben
+• Optionaler bidirektionaler Sync mit einer Brassica-Web-Installation
+
+Die Android-App funktioniert ohne Konto und ohne Server vollständig lokal. Die Synchronisierung mit Brassica Web ist optional.
+
+Brassica ist ein Fork der freien App Broccoli und steht unter der GNU GPL v3.

@@ -1,0 +1,17 @@
+Brassica is a free and open source recipe manager for Android.
+
+Recipes are stored locally on the device and can include images, ingredients, directions, notes, nutrition information and categories.
+
+Features:
+• Create, edit and search recipes and mark favorites
+• Filter by multiple categories using OR or AND matching
+• Seasonal calendar and seasonal recipe filtering
+• Cooking mode with an adapted presentation
+• Import and export .broccoli and .broccoli-archive files
+• Share individual recipes as files
+• Import public recipe shares using QR codes or links
+• Optional bidirectional synchronization with a Brassica Web installation
+
+The Android app works fully offline without an account or server. Synchronization with Brassica Web is optional.
+
+Brassica is a fork of the free Broccoli app and is licensed under GNU GPL v3.

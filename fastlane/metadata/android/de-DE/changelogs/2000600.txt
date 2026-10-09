@@ -1,0 +1,1 @@
+Neue Rezept- und Kategorienfilter mit ODER/UND-Auswahl. Datei- und QR-Code-Import sowie Web-Link- und QR-Freigabe wurden ergänzt. Die globale Teilen-Auswahl wurde erweitert. 2.0.6 behebt außerdem den Startabsturz aus 2.0.5.

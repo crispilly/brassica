@@ -1,0 +1,1 @@
+New recipe and category filters with OR/AND selection. Added file and QR-code import plus web-link and QR sharing. Expanded global sharing options. Version 2.0.6 also fixes the startup crash introduced in 2.0.5.

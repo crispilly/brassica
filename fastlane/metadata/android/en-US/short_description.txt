@@ -1,0 +1,1 @@
+Free recipe manager with import, categories, cooking mode and optional sync

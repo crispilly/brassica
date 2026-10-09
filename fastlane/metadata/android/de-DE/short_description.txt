@@ -1,0 +1,1 @@
+Freie Rezeptverwaltung mit Import, Kategorien, Kochmodus und optionalem Sync
