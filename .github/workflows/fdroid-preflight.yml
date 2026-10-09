@@ -118,7 +118,7 @@ jobs:
             sleep 4
             adb exec-out screencap -p > ../fastlane/metadata/android/de-DE/images/phoneScreenshots/1.png
             cp ../fastlane/metadata/android/de-DE/images/phoneScreenshots/1.png ../fastlane/metadata/android/en-US/images/phoneScreenshots/1.png
-            adb shell input tap 45 105
+            adb shell input swipe 2 500 800 500 300
             sleep 2
             adb exec-out screencap -p > ../fastlane/metadata/android/de-DE/images/phoneScreenshots/2.png
             cp ../fastlane/metadata/android/de-DE/images/phoneScreenshots/2.png ../fastlane/metadata/android/en-US/images/phoneScreenshots/2.png
