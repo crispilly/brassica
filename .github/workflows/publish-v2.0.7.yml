@@ -1,0 +1,115 @@
+name: Publish Brassica v2.0.7
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      BRASSICA_KEYSTORE_PATH: ${{ github.workspace }}/android/brassica-release.p12
+      BRASSICA_KEYSTORE_PASSWORD: ${{ secrets.BRASSICA_KEYSTORE_PASSWORD }}
+      BRASSICA_KEY_ALIAS: ${{ secrets.BRASSICA_KEY_ALIAS }}
+      BRASSICA_KEY_PASSWORD: ${{ secrets.BRASSICA_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        run: |
+          set -euo pipefail
+          VERSION=$(tr -d '\r\n' < web/VERSION)
+          test "$VERSION" = "2.0.7"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Reject forbidden branding
+        run: |
+          set -euo pipefail
+          if grep -RIni --exclude-dir=.git --exclude='*.jks' --exclude='*.p12' 'digitaldruckshop' android web docs README.md CHANGELOG.md 2>/dev/null; then
+            echo "Forbidden branding found."
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Prepare Android SDK
+        working-directory: android
+        run: |
+          SDKMANAGER=/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Restore signing keystore
+        working-directory: android
+        run: |
+          set -euo pipefail
+          test -n "${{ secrets.BRASSICA_KEYSTORE_BASE64 }}"
+          printf '%s' "${{ secrets.BRASSICA_KEYSTORE_BASE64 }}" | base64 --decode > "$BRASSICA_KEYSTORE_PATH"
+          chmod 600 "$BRASSICA_KEYSTORE_PATH"
+
+      - name: Build signed Android release
+        working-directory: android
+        run: |
+          set -euo pipefail
+          ./gradlew clean assembleFdroidRelease
+          APK=$(find app/build/outputs/apk/fdroid/release -name '*.apk' -type f | head -n1)
+          test -n "$APK"
+          /usr/local/lib/android/sdk/build-tools/37.0.0/apksigner verify --verbose --print-certs "$APK"
+          cp "$APK" "../Brassica-Android-$VERSION.apk"
+
+      - name: Package Web release
+        run: |
+          set -euo pipefail
+          (
+            cd web
+            zip -r "../Brassica-Web-$VERSION.zip" . \
+              -x 'storage/database/*' \
+                 'storage/images/*' \
+                 'storage/imports/archives/*' \
+                 'storage/logs/*'
+          )
+          test -s "Brassica-Web-$VERSION.zip"
+
+      - name: Create checksums
+        run: |
+          set -euo pipefail
+          sha256sum "Brassica-Android-$VERSION.apk" "Brassica-Web-$VERSION.zip" > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Release notes
+        run: |
+          cat > RELEASE_NOTES.md <<'EOF'
+          Brassica 2.0.7
+
+          F-Droid-Vorbereitung
+          - Ergänzt Store-Metadaten, Beschreibungen, Icons und Screenshots.
+          - Keine Änderungen an den Android-Funktionen gegenüber 2.0.6.
+
+          Signatur
+          - Android-APK wird mit der dauerhaften Brassica-Release-Signatur gebaut und vor Veröffentlichung mit apksigner geprüft.
+          EOF
+
+      - name: Remove decoded keystore
+        if: always()
+        working-directory: android
+        run: rm -f "$BRASSICA_KEYSTORE_PATH"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "v$VERSION" \
+            "Brassica-Android-$VERSION.apk" \
+            "Brassica-Web-$VERSION.zip" \
+            SHA256SUMS.txt \
+            --title "Brassica $VERSION" \
+            --notes-file RELEASE_NOTES.md \
+            --target "${{ github.sha }}"
