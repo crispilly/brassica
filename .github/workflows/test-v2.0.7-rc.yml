@@ -1,0 +1,50 @@
+name: Brassica 2.0.7 signed release candidate test
+
+on:
+  push:
+    paths:
+      - '.github/workflows/test-v2.0.7-rc.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      BRASSICA_KEYSTORE_PATH: ${{ github.workspace }}/android/brassica-release.p12
+      BRASSICA_KEYSTORE_PASSWORD: ${{ secrets.BRASSICA_KEYSTORE_PASSWORD }}
+      BRASSICA_KEY_ALIAS: ${{ secrets.BRASSICA_KEY_ALIAS }}
+      BRASSICA_KEY_PASSWORD: ${{ secrets.BRASSICA_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Prepare Android SDK
+        run: |
+          SDKMANAGER=/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-37.0" "build-tools;37.0.0"
+      - name: Restore signing keystore
+        run: |
+          set -euo pipefail
+          test -n "${{ secrets.BRASSICA_KEYSTORE_BASE64 }}"
+          printf '%s' "${{ secrets.BRASSICA_KEYSTORE_BASE64 }}" | base64 --decode > "$BRASSICA_KEYSTORE_PATH"
+          chmod 600 "$BRASSICA_KEYSTORE_PATH"
+      - name: Build and verify signed F-Droid APK
+        working-directory: android
+        run: |
+          set -euo pipefail
+          ./gradlew clean assembleFdroidRelease
+          APK=$(find app/build/outputs/apk/fdroid/release -name '*.apk' -type f | head -n1)
+          test -s "$APK"
+          /usr/local/lib/android/sdk/build-tools/37.0.0/apksigner verify --verbose --print-certs "$APK"
+          cp "$APK" ../Brassica-Android-2.0.7-rc.apk
+      - name: Remove decoded keystore
+        if: always()
+        run: rm -f "$BRASSICA_KEYSTORE_PATH"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: brassica-2.0.7-signed-release-candidate
+          path: Brassica-Android-2.0.7-rc.apk
+          if-no-files-found: error
