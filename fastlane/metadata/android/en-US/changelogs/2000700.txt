@@ -1,0 +1,1 @@
+F-Droid preparation: added app metadata, descriptions, and screenshots. No changes to Android functionality.
