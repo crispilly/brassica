@@ -15,8 +15,8 @@ android {
         applicationId "de.crispilly.brassica"
         minSdkVersion 26
         targetSdk 37
-        versionCode 2000700 // Brassica 2.0.7
-        versionName "2.0.7"
+        versionCode 2000800 // Brassica 2.0.8
+        versionName "2.0.8"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     def brassicaKeystorePath = System.getenv("BRASSICA_KEYSTORE_PATH")
