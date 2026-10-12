@@ -45,6 +45,10 @@ android {
             }
         }
     }
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
     bundle {
         language {
             enableSplit = false
