@@ -1,0 +1,42 @@
+name: Broccoli Helper APK
+
+on:
+  push:
+    paths:
+      - 'tools/broccoli-helper-android/**'
+      - '.github/workflows/broccoli-helper-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-debug-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Install Android SDK
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+      - name: Build debug APK
+        working-directory: tools/broccoli-helper-android
+        run: gradle --no-daemon :app:assembleDebug
+      - name: Copy APK
+        run: |
+          mkdir -p dist
+          cp tools/broccoli-helper-android/app/build/outputs/apk/debug/app-debug.apk dist/Broccoli-Helper-1.0-debug.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: broccoli-helper-debug-apk
+          path: dist/Broccoli-Helper-1.0-debug.apk
+          if-no-files-found: error
